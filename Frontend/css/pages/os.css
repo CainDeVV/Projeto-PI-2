@@ -1,0 +1,207 @@
+/* css/pages/os.css */
+
+/* --- OVERRIDE DE LAYOUT (TELA CHEIA - DESKTOP) --- */
+@media (min-width: 901px) {
+    html body.layout-full-width #app-sidebar { display: none !important; }
+    
+    html body.layout-full-width #app-main {
+        position: fixed !important;
+        left: var(--gap-side) !important;
+        right: var(--gap-side) !important;
+        width: auto !important;
+        top: calc(var(--header-height) + var(--gap-top)) !important;
+        bottom: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 10px 10px 0 0 !important;
+        z-index: 1;
+    }
+}
+
+/* --- PAINEL DE DETALHES --- */
+#os-detail-content {
+    overflow-y: auto;
+    flex: 1;
+    height: 100%;
+    padding: 20px 30px; 
+    padding-bottom: 100px !important;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+    text-align: left;
+}
+
+.detail-item label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.detail-item div {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 10px 15px;
+    background: var(--bg-body);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    word-break: break-word; 
+    line-height: 1.5;
+}
+
+.detail-full { grid-column: 1 / -1; }
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   MOBILE CARD LAYOUT (CORRIGIDO PARA SOLICITANTE/RESPONSÁVEL)
+   ========================================================================== */
+
+@media (max-width: 900px) {
+    .table-header.os-grid { display: none !important; }
+    
+    .user-row.os-grid {
+        display: grid !important;
+        /* Colunas Base do Card */
+        grid-template-columns: auto 1fr auto !important; 
+        
+        /* LAYOUT DO CARD:
+           ------------------------------------------------
+           Status(icon) | Solicitante (Nome)    | #ID
+           ------------------------------------------------
+           Equipamento (Grande e em Negrito)
+           ------------------------------------------------
+           Defeito (Descrição em Vermelho/Destaque)
+           ------------------------------------------------
+           Responsável: [Nome]      |      [Data Abertura]
+           ------------------------------------------------
+        */
+        grid-template-areas: 
+            "area-st    area-sol   area-id"
+            "area-equip area-equip area-equip"
+            "area-desc  area-desc  area-desc"
+            "area-resp  area-resp  area-date";
+            
+        gap: 8px 10px;
+        padding: 15px;
+        border-bottom: 1px solid var(--border-medium);
+        background-color: var(--bg-surface);
+        margin-bottom: 10px; /* Espaço entre cards */
+        border-radius: 8px;  /* Bordas arredondadas no mobile */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        align-items: center;
+    }
+
+    /* 1. STATUS (Ícone) - Canto Superior Esquerdo */
+    .os-grid .th-col:nth-child(1) { 
+        grid-area: area-st;
+        font-size: 18px;
+        padding: 0;
+    }
+
+    /* 2. ID (#) - Canto Superior Direito */
+    .os-grid .th-col:nth-child(2) { 
+        grid-area: area-id;
+        background: var(--bg-body); 
+        border-radius: 6px;
+        font-size: 11px; font-weight: bold; color: #666;
+        padding: 2px 8px;
+        justify-self: end; /* Alinha à direita */
+        text-align: center;
+    }
+
+    /* 3. EQUIPAMENTO (Destaque Central) */
+    .os-grid .th-col:nth-child(3) { 
+        grid-area: area-equip;
+        font-size: 15px; 
+        font-weight: 700; 
+        color: var(--brand-primary);
+        white-space: normal !important;
+        line-height: 1.3;
+        margin-top: 5px;
+    }
+
+    /* 4. DEFEITO */
+    .os-grid .th-col:nth-child(4) { 
+        grid-area: area-desc;
+        text-align: left !important;
+        font-size: 13px; 
+        color: var(--text-secondary);
+        font-weight: 400;
+        white-space: normal !important;
+        margin-bottom: 5px;
+    }
+
+    /* 5. SOLICITANTE (Topo Centro/Esquerda) */
+    .os-grid .th-col:nth-child(5) { 
+        grid-area: area-sol;
+        font-size: 13px; 
+        font-weight: 600; 
+        color: var(--text-primary);
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis;
+    }
+    /* Adiciona ícone de usuário antes do nome */
+    .os-grid .th-col:nth-child(5)::before {
+        content: "\f007"; /* FontAwesome User Icon */
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        margin-right: 5px;
+        color: #999;
+        font-size: 11px;
+    }
+
+    /* 6. RESPONSÁVEL (Rodapé Esquerda) */
+    .os-grid .th-col:nth-child(6) { 
+        grid-area: area-resp;
+        font-size: 11px; 
+        color: #888;
+        padding-top: 8px;
+        border-top: 1px dashed #eee;
+    }
+    .os-grid .th-col:nth-child(6)::before {
+        content: "Téc: ";
+        font-weight: bold;
+    }
+
+    /* 7. SETOR (Ocultar no Card Mobile para economizar espaço) */
+    .os-grid .th-col:nth-child(7) { display: none !important; }
+
+    /* 8. DATA ABERTURA (Rodapé Direita) */
+    .os-grid .th-col:nth-child(8) { 
+        grid-area: area-date;
+        font-size: 11px; 
+        color: #999;
+        text-align: right !important;
+        padding-top: 8px;
+        border-top: 1px dashed #eee;
+    }
+
+    /* 9. DATA FECHAMENTO (Ocultar) */
+    .os-grid .th-col:nth-child(9) { display: none !important; }
+
+    /* Backdrop mobile para detalhes */
+    .os-mobile-backdrop { display: none; }
+    .split-container.show-detail .os-mobile-backdrop {
+        display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--bg-overlay); z-index: 4999;
+    }
+}

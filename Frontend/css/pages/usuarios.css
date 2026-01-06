@@ -1,0 +1,17 @@
+/* Garante que a tabela de usuários ocupe toda a altura disponível do Main */
+#users-list {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Se quiser customizar especificamente a linha de usuários (ex: cursor diferente) */
+.user-row {
+    cursor: pointer;
+}
+
+/* Ajuste específico para o Empty State desta página, se necessário */
+#empty-state {
+    margin-top: 50px;
+}

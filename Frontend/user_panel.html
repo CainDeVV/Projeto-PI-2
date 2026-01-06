@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico - Meus Chamados</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    
+    <link rel="stylesheet" href="css/pages/equipamento.css"> 
+    
+    <link rel="stylesheet" href="css/pages/os.css"> 
+</head>
+<body>
+    <header id="app-header"></header>
+    
+    <main id="app-main" class="main-transparent">
+        <div class="split-container">
+            <div class="top-list-section">
+                <div class="table-header os-grid">
+                    <div class="th-col">St</div>
+                    <div class="th-col">#</div>
+                    <div class="th-col">Equipamento</div>
+                    <div class="th-col">Defeito</div>
+                    <div class="th-col">Responsável</div>
+                    <div class="th-col">Abertura</div>
+                    <div class="th-col">Fechamento</div>
+                </div>
+                <div class="table-content">
+                    <div id="empty-state">Carregando...</div>
+                    <div id="os-list" class="hidden"></div>
+                </div>
+            </div>
+
+            <div class="bottom-panel-section">
+                <div class="tabs-header" style="background: var(--brand-primary); color: white;">
+                    <div style="padding: 10px 20px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-info-circle"></i> Detalhes da Solicitação
+                    </div>
+                </div>
+                <div class="tab-content-area centered padded" id="os-detail-content">
+                    <div style="color:#888;">Selecione um chamado para ver o andamento.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script type="module" src="js/pages/user_panel.js"></script>
+</body>
+</html>

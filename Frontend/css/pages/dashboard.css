@@ -1,0 +1,194 @@
+/* css/pages/dashboard.css */
+
+/* ==========================================================================
+   0. AJUSTE GLOBAL
+   ========================================================================== */
+#app-main {
+    overflow-y: auto !important; 
+    -webkit-overflow-scrolling: touch;
+    display: block !important;
+}
+
+/* ==========================================================================
+   1. LAYOUT DO CONTAINER (CORRIGIDO PARA MOBILE)
+   ========================================================================== */
+.kpi-grid { 
+    display: grid; 
+    /* Mudança: minmax de 280px para 100% no mobile */
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
+    gap: 20px; 
+    margin-bottom: 25px; 
+    padding: 20px 20px 0 20px;
+}
+
+.details-grid { 
+    display: grid; 
+    /* Mudança: minmax reduzido para caber em telas pequenas */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    gap: 20px; 
+    padding: 0 20px 40px 20px;
+}
+
+/* ==========================================================================
+   2. CARDS
+   ========================================================================== */
+.card { 
+    background: var(--bg-surface); 
+    border-radius: 12px; 
+    padding: 20px; 
+    box-shadow: var(--shadow-soft); 
+    border: 1px solid var(--border-light);
+    display: flex; 
+    flex-direction: column; 
+    height: auto; 
+    min-height: 100%;
+    
+    /* CORREÇÃO MOBILE: Garante que o conteúdo interno não estoure o card */
+    width: 100%; 
+    overflow: hidden; 
+}
+
+/* ==========================================================================
+   3. KPI CARDS
+   ========================================================================== */
+.kpi-card { 
+    flex-direction: row; 
+    align-items: center; 
+    gap: 20px; 
+    transition: transform 0.2s;
+}
+.kpi-card:hover { transform: translateY(-2px); }
+
+.kpi-icon { 
+    width: 60px; height: 60px; 
+    background: var(--brand-hover-light); 
+    border-radius: 12px; 
+    display: flex; align-items: center; justify-content: center; 
+    font-size: 1.8rem; 
+    color: var(--brand-active); 
+    border: 1px solid var(--brand-primary); 
+    flex-shrink: 0;
+}
+.kpi-icon.icon-error {
+    background-color: #fff0f0; color: var(--status-error); border-color: #ffcccc;
+}
+.kpi-info h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+.kpi-info span { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); }
+
+/* ==========================================================================
+   4. LISTAS E TABELAS (CORREÇÃO DE SCROLL HORIZONTAL)
+   ========================================================================== */
+.card-header { 
+    display: flex; align-items: center; margin-bottom: 20px; 
+    gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-light);
+}
+.card-header h2 { font-size: 0.95rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); margin: 0; }
+.card-header i { font-size: 1.2rem; color: var(--brand-active); }
+
+/* Container com scroll para tabelas/listas */
+.list-container {
+    width: 100%;
+    overflow-x: auto; /* Permite scroll lateral se a tabela for grande */
+}
+
+/* Lista de Impressoras */
+.list-row { 
+    display: flex; align-items: center; padding: 10px 0; 
+    border-bottom: 1px solid var(--border-light); font-size: 0.9rem; cursor: pointer; transition: background 0.1s;
+    min-width: 250px; /* Garante tamanho mínimo */
+}
+.list-row:hover { background-color: var(--bg-row-hover); }
+.list-row:last-child { border-bottom: none; }
+
+.row-id { width: 35px; color: var(--text-muted); font-weight: bold; font-size: 0.8rem; flex-shrink: 0; }
+.row-name { flex: 1; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+.row-value { width: 50px; text-align: right; font-weight: bold; font-size: 0.85rem; color: var(--text-secondary); flex-shrink: 0; }
+
+.progress-container { width: 60px; height: 8px; background: #eee; border-radius: 4px; margin: 0 10px; overflow: hidden; flex-shrink: 0; }
+.progress-bar { height: 100%; background: var(--brand-active); border-radius: 4px; }
+
+/* Tabela de Cidades */
+.city-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 100%; }
+.city-table th { text-align: left; color: var(--text-muted); font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid var(--border-medium); font-size: 0.8rem; text-transform: uppercase; white-space: nowrap; }
+.city-table td { padding: 10px 0; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.text-center { text-align: center !important; }
+
+/* ==========================================================================
+   5. LISTA DE ERROS (CORES CORRIGIDAS)
+   ========================================================================== */
+.error-item { 
+    display: flex; align-items: flex-start; padding: 12px; margin-bottom: 10px; 
+    border-radius: 8px; background-color: var(--bg-body); border: 1px solid var(--border-light); 
+    cursor: pointer; transition: transform 0.1s; position: relative; padding-left: 15px; overflow: hidden;
+}
+.error-item:hover { transform: translateX(3px); border-color: var(--border-medium); }
+
+/* Tarja Lateral */
+.error-item::before { 
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; 
+}
+
+/* Ícone */
+.error-icon-circle { 
+    width: 36px; height: 36px; border-radius: 50%; border: 1px solid; 
+    display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-size: 14px; background: #fff;
+}
+
+/* --- DEFINIÇÃO DE CORES (Igual NOC) --- */
+/* Crítico (Vermelho) */
+.status-red::before { background-color: var(--status-error); }
+.status-red .error-icon-circle { border-color: var(--status-error); color: var(--status-error); background-color: #fff5f5; }
+
+/* Alerta (Amarelo/Laranja) */
+.status-yellow::before { background-color: #FFA500; }
+.status-yellow .error-icon-circle { border-color: #FFA500; color: #FFA500; background-color: #fffde7; }
+
+/* Info (Azul/Padrão) */
+.status-info::before { background-color: var(--brand-active); }
+.status-info .error-icon-circle { border-color: var(--brand-active); color: var(--brand-active); background-color: #e0f7fa; }
+
+/* Texto */
+.error-text { flex: 1; min-width: 0; }
+.error-text h4 { 
+    font-size: 0.9rem; margin-bottom: 4px; color: var(--text-primary); font-weight: 700; 
+    white-space: normal; line-height: 1.2; 
+}
+.error-text p { 
+    font-size: 0.8rem; color: var(--text-muted); margin: 0; 
+    white-space: normal; line-height: 1.4; word-break: break-word; 
+}
+
+/* ==========================================================================
+   6. OVERRIDE DESKTOP
+   ========================================================================== */
+@media (min-width: 901px) {
+    body.layout-full-width #app-sidebar { display: none !important; }
+    body.layout-full-width #app-main {
+        position: relative !important; left: 0 !important; right: 0 !important; bottom: auto !important; top: auto !important;
+        width: 95% !important; max-width: 1200px !important; margin: 0 auto !important;
+        margin-top: calc(var(--header-height) + 30px) !important; margin-bottom: 30px !important;
+        height: auto !important; overflow: visible !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; border-radius: 0 !important;
+    }
+    .kpi-grid { padding: 0 !important; margin-bottom: 25px; }
+    .details-grid { padding: 0 !important; }
+}
+
+/* ==========================================================================
+   7. OVERRIDE MOBILE (CORREÇÃO DE ESTOURO)
+   ========================================================================== */
+@media (max-width: 900px) {
+    .kpi-grid { 
+        grid-template-columns: 1fr; /* Um card por linha */
+        padding: 15px;
+    }
+    .details-grid { 
+        grid-template-columns: 1fr; /* Um card por linha */
+        padding: 0 15px 80px 15px; /* Espaço extra embaixo */
+    }
+    .kpi-card { padding: 15px; }
+    
+    /* Força tabelas a terem scroll horizontal se não caberem */
+    .city-table, .list-row {
+        min-width: 100%;
+    }
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Erros</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/monitoramento.css">
+</head>
+<body>
+
+    <header id="app-header"></header>
+    
+    <aside id="app-sidebar" class="sidebar">
+        <div id="tree-menu-container"></div>
+    </aside>
+
+    <main id="app-main">
+        <div class="table-header monitor-grid">
+            <div class="th-col">Severidade</div>
+            <div class="th-col">Data</div>
+            <div class="th-col">Equipamento</div>
+            <div class="th-col">Sala</div>
+            <div class="th-col">Erro</div>
+            <div class="th-col">Ação</div>
+        </div>
+
+        <div class="table-content">
+            <div id="empty-state">Carregando...</div>
+            <div id="monitor-list" class="hidden"></div>
+        </div>
+    </main>
+    
+    <script type="module" src="js/pages/monitoramento.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+.btn-mobile-toggle { display: none; font-size: 20px; color: var(--text-inverse); background: transparent; border: none; cursor: pointer; margin-right: 15px; }
+.logo-circle { width: 45px; height: 45px; background: var(--bg-header-gray); border-radius: 50%; border: 2px solid var(--bg-surface); cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
+.logo-circle:hover { transform: scale(1.05); border-color: var(--brand-active); }
+.nav-menu { display: flex; gap: 15px; }
+.nav-item { color: var(--text-inverse); font-weight: 500; padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: background 0.3s; }
+.nav-item:hover { background-color: rgba(255, 255, 255, 0.25); }
+.nav-item.active { background-color: var(--brand-active); font-weight: bold; }
+
+@media (max-width: 768px) {
+    .btn-mobile-toggle { display: block; }
+    .nav-menu { display: none; } /* Esconde menu texto no mobile */
+    .search-container:not([style*="display: block"]) { display: none; }
+}

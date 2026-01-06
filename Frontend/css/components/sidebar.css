@@ -1,0 +1,193 @@
+/* css/components/sidebar.css */
+
+/* CONFIGURAÇÃO DO CONTAINER PRINCIPAL (FLEXBOX) */
+#app-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%; 
+    background-color: var(--bg-surface);
+    border-right: 1px solid var(--border-medium);
+    border-top-right-radius: 10px;
+    overflow: hidden; 
+}
+
+/* 1. TÍTULO FIXO */
+.sidebar-title { 
+    height: 44px; 
+    background-color: var(--brand-primary); 
+    color: var(--text-inverse); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: bold; 
+    font-size: 18px; 
+    border-top-right-radius: 10px;
+    flex-shrink: 0; 
+}
+
+/* 2. ÁREA DE SCROLL (CENTRO - ÁRVORE) */
+/* --- MUDANÇA AQUI --- */
+#tree-menu-container { 
+    /* Antes era flex: 1 (ocupava tudo). Agora é flex: 0 1 auto. */
+    /* Grow: 0 (não cresce vazio), Shrink: 1 (encolhe se faltar espaço), Basis: auto */
+    flex: 0 1 auto;
+    
+    /* min-height: 0 é crucial para o scroll funcionar dentro de um flex item encolhido */
+    min-height: 0; 
+    
+    overflow-y: auto; 
+    padding: 10px 0; 
+}
+
+/* 3. RODAPÉ DE ADMINISTRAÇÃO */
+/* --- MUDANÇA AQUI --- */
+.sidebar-footer-actions {
+    padding: 20px;
+    background-color: #f8f9fa; 
+    border-top: 1px solid var(--border-medium);
+    border-bottom: 1px solid var(--border-medium); /* Opcional: fecha o bloco visualmente */
+    flex-shrink: 0; 
+    
+    /* Adiciona um espaço visual do menu, mas não empurra pro final da tela */
+    margin-top: 10px; 
+}
+
+/* O resto continua igual... */
+
+.sidebar-subtitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: white;
+    border: 1px solid var(--border-medium);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.sidebar-action-btn i {
+    color: var(--brand-primary);
+    width: 16px;
+    text-align: center;
+}
+
+.sidebar-action-btn:hover {
+    background-color: var(--brand-hover-light);
+    border-color: var(--brand-active);
+    color: var(--brand-active);
+}
+
+/* --- ESTILOS DA ÁRVORE (TREE) --- */
+.tree-item-content { 
+    min-height: 40px; 
+    display: flex; 
+    align-items: center; 
+    padding-left: 15px; 
+    cursor: pointer; 
+    color: var(--text-secondary); 
+    font-size: 14px; 
+    user-select: none; 
+    border-left: 4px solid transparent; 
+    transition: background 0.2s; 
+}
+
+.tree-item-content:hover { 
+    background-color: var(--brand-hover-light); 
+    color: var(--brand-active); 
+}
+
+.active-sector,
+.leaf-node.active-sector,
+.folder-node.active-sector { 
+    background-color: var(--brand-hover-light); 
+    color: var(--brand-active); 
+    font-weight: bold; 
+    border-left: 4px solid var(--brand-active); 
+}
+
+.tree-children { 
+    display: none; 
+    padding-left: 15px; 
+}
+
+.expanded > .tree-children { 
+    display: block; 
+    animation: fadeIn 0.2s; 
+}
+
+.arrow { 
+    margin-right: 8px; 
+    font-size: 10px; 
+    width: 10px; 
+    transition: transform 0.2s; 
+}
+
+.expanded > .tree-item-content .arrow { 
+    transform: rotate(90deg); 
+}
+
+/* --- NAVEGAÇÃO MOBILE --- */
+.sidebar-mobile-nav {
+    display: none; 
+    list-style: none;
+    padding: 10px 0;
+    margin: 0;
+    background-color: var(--bg-surface);
+}
+
+.sidebar-mobile-nav li {
+    padding: 15px 20px;
+    font-size: 16px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-mobile-nav li:hover:not(.disabled) {
+    background-color: var(--brand-hover-light);
+    color: var(--brand-active);
+    font-weight: 500;
+}
+
+.sidebar-mobile-nav li i {
+    width: 24px;
+    text-align: center;
+    color: var(--brand-active);
+    font-size: 18px;
+}
+
+.sidebar-divider {
+    border: 0;
+    border-top: 1px solid var(--border-medium);
+    margin: 10px 20px;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .sidebar-mobile-nav { display: block; }
+    #app-sidebar, .sidebar-title { border-radius: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

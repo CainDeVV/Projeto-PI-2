@@ -1,0 +1,10 @@
+# Ignorar arquivos de sistema e Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Ignorar dependencias pesadas do Frontend 
+node_modules/
+dist/
+.DS_Store

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página de Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components/inputs.css">
+    <link rel="stylesheet" href="css/pages/login.css">
+    <link rel="stylesheet" href="css/components/toast.css">
+</head>
+<body>
+    <div class="container-login">
+        <div class="caixa-esquerda"></div>
+        <div class="caixa-direita">
+            <div class="top-buttons">Login</div>
+            <form id="loginForm">
+                <div class="group-imput">
+                    <label>CPF</label>
+                    <div class="campo-cpf">
+                        <input type="text" id="cpf" placeholder="Digite o seu CPF" maxlength="14" data-mask="cpf">
+                        <span id="cpfErro" class="erro-msg"></span>
+                    </div>
+                </div>
+                <div class="group-imput">
+                    <label>Senha</label>
+                    <div class="caixa-de-senha">
+                        <input type="password" id="password" placeholder="Digite a sua senha">
+                        <i class="fas fa-eye icone-do-olho" id="togglePassword"></i>
+                    </div>
+                </div>
+                <div class="opcoes">
+                    <label class="lembrar-se"><input type="checkbox"> Lembrar-se</label>
+                    <a href="#" class="esquecida">Esqueceu a senha?</a>
+                </div>
+                <button type="submit" class="botão-de-login">Fazer Login</button>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="js/pages/login.js"></script>
+</body>
+</html>

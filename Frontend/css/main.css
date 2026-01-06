@@ -1,0 +1,22 @@
+/* css/main.css - O Gerente de Estilos */
+
+/* 1. Base do Sistema */
+@import url('base.css');
+@import url('animations.css');
+
+/* 2. Variáveis (Se tivéssemos mantido separado, seria aqui) */
+/* (Como suas variáveis estão no base.css, ok) */
+
+/* 3. Componentes Globais (Usados em quase todas as telas) */
+@import url('components/layout.css');
+@import url('components/header.css');
+@import url('components/sidebar.css');
+@import url('components/buttons.css');
+@import url('components/inputs.css');
+@import url('components/toast.css');
+@import url('components/modal.css');
+
+/* Nota: Tabelas e Abas não são globais (Login não usa), 
+   mas para simplificar, podemos colocar aqui ou deixar no HTML específico.
+   Vamos colocar Tabelas aqui pois quase tudo usa. */
+@import url('components/tables.css');

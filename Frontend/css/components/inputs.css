@@ -1,0 +1,8 @@
+.search-container { display: none; flex: 1; max-width: 600px; position: relative; margin-left: 20px; animation: fadeIn 0.3s ease; }
+#search-input { width: 100%; height: 40px; border-radius: 20px; border: none; padding: 0 40px 0 20px; font-size: 16px; outline: none; }
+.search-close-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-disabled); }
+body.search-mode .nav-menu { display: none; }
+body.search-mode .search-container { display: block; }
+
+.custom-input, .custom-select { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-medium); background-color: var(--bg-input); font-size: 15px; color: var(--text-primary); transition: all 0.2s; }
+.custom-input:focus, .custom-select:focus { background-color: var(--bg-surface); border-color: var(--brand-active); outline: none; box-shadow: 0 0 0 3px var(--brand-hover-light); }

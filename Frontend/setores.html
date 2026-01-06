@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setores</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/forms.css">
+    <link rel="stylesheet" href="css/pages/setores.css">
+</head>
+<body>
+
+    <header id="app-header"></header>
+    
+    <aside id="app-sidebar" class="sidebar">
+        <div class="sidebar-title">Menu</div>
+        <div id="tree-menu-container"></div>
+    </aside>
+
+    <main id="app-main">
+        
+        <div class="table-header sectors-grid">
+            <div class="th-col">Nome do Setor</div>
+            <div class="th-col">Empresa</div>
+            <div class="th-col">Cidade</div>
+            </div>
+
+        <div class="table-content">
+            <div id="empty-state">Carregando...</div>
+            <div id="sectors-list" class="hidden"></div>
+        </div>
+    </main>
+
+    <div id="modal-manage-cities" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Gerenciar Cidades</h3>
+                <button class="modal-close" data-close="modal-manage-cities">&times;</button>
+            </div>
+            <div id="list-cities-container" class="modal-list"></div>
+
+            <div id="edit-city-form" class="edit-form-box hidden">
+                <h5>Editar Cidade</h5>
+                <input type="hidden" id="edit-city-id">
+                
+                <label>Nome da Cidade</label>
+                <input type="text" id="edit-city-name">
+                
+                <label>UF</label>
+                <input type="text" id="edit-city-uf" maxlength="2" style="text-transform: uppercase;">
+                
+                <div class="edit-actions">
+                    <button type="button" id="btn-cancel-city-edit" class="btn-cancel">Cancelar</button>
+                    <button type="button" id="btn-save-city-edit" class="btn-save">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-manage-companies" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Gerenciar Empresas</h3>
+                <button class="modal-close" data-close="modal-manage-companies">&times;</button>
+            </div>
+            <div class="modal-list" id="list-companies-container"></div>
+            <div id="edit-company-form" class="edit-form-box hidden">
+                <h5>Editar Empresa</h5>
+                <input type="hidden" id="edit-company-id">
+                
+                <label>Nome</label>
+                <input type="text" id="edit-company-name" placeholder="Nome Fantasia">
+                
+                <label>CNPJ</label>
+                <input type="text" id="edit-company-cnpj" placeholder="CNPJ">
+                
+                <label>Descrição</label>
+                <input type="text" id="edit-company-desc" placeholder="Ex: Matriz, Filial...">
+                
+                <label>Observação</label>
+                <textarea id="edit-company-obs" rows="2" class="custom-input" placeholder="Detalhes adicionais"></textarea>
+                
+                <div class="edit-actions">
+                    <button type="button" id="btn-cancel-company-edit" class="btn-cancel">Cancelar</button>
+                    <button type="button" id="btn-save-company-edit" class="btn-save">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/pages/setores.js"></script>
+</body>
+</html>

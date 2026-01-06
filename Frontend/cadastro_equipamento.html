@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Equipamento</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/forms.css">
+</head>
+<body>
+
+    <header id="app-header"></header>
+    
+    <aside id="app-sidebar">
+        <div class="sidebar-title">Menu</div>
+        <div id="tree-menu-container"></div>
+    </aside>
+
+    <main id="app-main" class="main-registration">
+        <div class="form-container animate-fade">
+            
+            <div class="form-header-title">
+                <h2>Cadastro de Equipamento</h2>
+            </div>
+
+            <div class="type-selector">
+                <label>Tipo de Equipamento</label>
+                <div class="custom-select-wrapper">
+                    <select id="equip-type-select" class="custom-select">
+                        <option value="computador">Computador</option>
+                        <option value="impressora">Impressora</option>
+                    </select>
+                    <i class="fas fa-chevron-down select-icon"></i>
+                </div>
+            </div>
+
+            <form id="cadastro-form">
+                <div id="dynamic-fields">
+                    </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        CADASTRAR <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </main>
+    
+    <script type="module" src="js/pages/cadastro_equipamento.js"></script>
+</body>
+</html>

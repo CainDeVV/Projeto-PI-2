@@ -1,0 +1,82 @@
+/* css/base.css */
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+ul { list-style-type: none; }
+a { text-decoration: none; }
+
+/* CORREÇÃO: Usando a variável em vez do hardcoded #f4f4f4 */
+body { 
+    background-color: var(--bg-body); 
+    width: 100vw; 
+    height: 100vh; 
+    overflow: hidden; 
+    position: relative; 
+}
+
+:root {
+    /* Cores da Marca */
+    --brand-primary: #92D6D6; 
+    --brand-active: #49BBBD; 
+    --brand-secondary: #7DD0D0;
+    --brand-hover-dark: #3AA3A5; 
+    --brand-hover-light: #EAFFFF;
+
+    /* Fundos */
+    --bg-body: #F4F4F4;
+    --bg-surface: #FFFFFF;      /* Substitui 'white' em cards/inputs */
+    --bg-header-gray: #E0E0E0;
+    --bg-input: #FFFFFF;
+    --bg-disabled: #CCCCCC;
+    --bg-row-hover: #FAFAFA;
+    --bg-overlay: rgba(0, 0, 0, 0.5); /* Para o backdrop mobile */
+
+    /* Texto */
+    --text-primary: #333333;
+    --text-secondary: #555555;
+    --text-muted: #666666;
+    --text-inverse: #FFFFFF;    /* Substitui 'white' em textos sobre cor */
+    --text-disabled: #888888;
+
+    /* Bordas e Elementos de UI */
+    --border-light: #F0F0F0;
+    --border-medium: #DDDDDD;   /* Substitui #ddd */
+    --border-input: #CCCCCC;
+    
+    /* Scrollbar (Novas Variáveis) */
+    --scrollbar-thumb: #CCCCCC;
+    --scrollbar-hover: #BBBBBB;
+
+    /* Status */
+    --status-success: #008000;
+    --status-error: #FF0000;
+    --status-warning: #FFA500;  /* Adicionado para Badges de Update */
+    
+    /* Layout & Sombras */
+    --shadow-soft: 0 2px 5px rgba(0,0,0,0.03);
+    --header-height: 70px; 
+    --sidebar-width: 200px; 
+    --gap-side: 20px; 
+    --gap-top: 10px;  
+}
+
+/* Scrollbar Personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* CORREÇÃO: Usando variáveis */
+::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-hover);
+}
+
+.hidden { display: none !important; }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Visão Geral</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/dashboard.css">
+</head>
+<body>
+
+    <header id="app-header"></header>
+    
+    <aside id="app-sidebar">
+        <div id="tree-menu-container"></div>
+    </aside>
+
+    <main id="app-main">
+        <section class="kpi-grid animate-fade">
+            <div class="card kpi-card">
+                <div class="kpi-icon"><i class="fas fa-desktop"></i></div>
+                <div class="kpi-info">
+                    <h3>Total PCs</h3>
+                    <span id="total-pcs">...</span>
+                </div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-icon"><i class="fas fa-print"></i></div>
+                <div class="kpi-info">
+                    <h3>Total Impressoras</h3>
+                    <span id="total-printers">...</span>
+                </div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-icon icon-error"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="kpi-info">
+                    <h3>Erros Ativos</h3>
+                    <span id="total-errors">...</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="details-grid animate-fade" style="animation-delay: 0.1s;">
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-print"></i>
+                    <h2>Mais Impressos</h2>
+                </div>
+                <div id="printer-list" class="list-container">Carregando...</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar"></i> <h2>Equipamentos por Cidade</h2>
+                </div>
+                <table class="city-table">
+                    <thead>
+                        <tr>
+                            <th>Cidade</th>
+                            <th class="text-center">PCs</th>
+                            <th class="text-center">Imp.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="city-list">
+                        <tr><td colspan="3">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h2>Erros Recentes</h2>
+                </div>
+                <div id="error-list" class="list-container">Carregando...</div>
+            </div>
+
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/dashboard.js"></script>
+</body>
+</html>

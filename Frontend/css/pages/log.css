@@ -1,0 +1,146 @@
+/* ==========================================================================
+   1. UTILITÁRIOS & BADGES
+   Estilos visuais reutilizáveis dentro do log.
+   ========================================================================== */
+.badge { 
+    display: inline-block;
+    min-width: 80px;
+    padding: 4px 8px; 
+    border-radius: 4px; 
+    font-size: 11px; 
+    font-weight: 700; 
+    text-align: center; 
+    text-transform: uppercase; 
+    color: var(--text-inverse);
+}
+
+/* Variações de Status */
+.badge.create { background-color: var(--status-success); }
+.badge.delete { background-color: var(--status-error); }
+.badge.login  { background-color: var(--brand-active); }
+.badge.update { 
+    background-color: var(--status-warning); 
+    color: #444; 
+}
+
+/* ==========================================================================
+   2. LAYOUT DESKTOP (PADRÃO)
+   Configurações da grade e overrides de tela cheia.
+   ========================================================================== */
+
+/* --- Configuração da Grade (Grid) --- */
+.log-grid {
+    display: grid;
+    /* Colunas: Data | Usuário | Ação | Recurso | Detalhes */
+    grid-template-columns: 180px 1.5fr 120px 150px 2.5fr;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+}
+
+/* --- Comportamento das Células --- */
+.log-grid .th-col { 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    padding: 0; 
+}
+
+/* Exceção: Coluna Detalhes (Permite quebra de linha e cor padrão) */
+.log-grid .th-col:nth-child(5) { 
+    white-space: normal; 
+}
+
+/* --- Override: Modo Tela Cheia (Desktop > 900px) --- */
+@media (min-width: 901px) {
+    
+    /* Remove a sidebar */
+    body.layout-full-width #app-sidebar {
+        display: none !important;
+    }
+    
+    /* Expande o Main para ocupar a tela toda */
+    body.layout-full-width #app-main {
+        left: var(--gap-side) !important; 
+        right: var(--gap-side) !important;
+        width: calc(100% - (var(--gap-side) * 2)) !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
+    }
+
+    /* Interatividade da Linha (Remove hover enganoso no desktop) */
+    .user-row.log-grid { cursor: default; }
+    .user-row.log-grid:hover { background-color: rgba(0,0,0,0.02); }
+    .user-row.log-grid.selected { 
+        background-color: transparent !important; 
+        box-shadow: none !important; 
+    }
+}
+
+/* ==========================================================================
+   3. LAYOUT MOBILE (RESPONSIVO)
+   Transforma a tabela em Cards para telas < 900px.
+   ========================================================================== */
+@media (max-width: 900px) {
+
+    /* Ajuste do Main para Mobile */
+    body.layout-full-width #app-main {
+        left: var(--gap-side) !important;
+        width: calc(100% - (var(--gap-side) * 2)) !important;
+    }
+    
+    /* Esconde o cabeçalho da tabela */
+    .table-header.log-grid { display: none !important; }
+    
+    /* Transforma a linha em um Card (Grid Areas) */
+    .user-row.log-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: 
+            "date      user"
+            "resource  action"
+            "detail    detail";
+        gap: 8px;
+        padding: 15px;
+        border-bottom: 1px solid var(--border-medium);
+        background-color: var(--bg-surface);
+        margin-bottom: 0;
+    }
+
+    /* --- Mapeamento das Áreas --- */
+    
+    /* 1. Data/Hora */
+    .log-grid .th-col:nth-child(1) { 
+        grid-area: date; 
+        font-size: 12px; color: #666; text-align: left; 
+    }
+
+    /* 2. Usuário */
+    .log-grid .th-col:nth-child(2) { 
+        grid-area: user; 
+        font-size: 13px; font-weight: bold; color: var(--brand-primary); text-align: right; 
+        white-space: normal;
+    }
+
+    /* 3. Ação (Badge) */
+    .log-grid .th-col:nth-child(3) { 
+        grid-area: action; 
+        text-align: right; align-self: center; 
+    }
+
+    /* 4. Recurso */
+    .log-grid .th-col:nth-child(4) { 
+        grid-area: resource; 
+        text-align: left; font-size: 12px; font-weight: 600; color: #444; 
+    }
+
+    /* 5. Detalhes */
+    .log-grid .th-col:nth-child(5) { 
+        grid-area: detail; 
+        font-size: 13px; 
+        margin-top: 5px; padding-top: 5px; border-top: 1px dashed #eee;
+        
+        /* Garante cor padrão conforme solicitado */
+        color: var(--text-primary); 
+    }
+}

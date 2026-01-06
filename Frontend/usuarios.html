@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Usuários</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <header id="app-header"></header>
+    <aside id="app-sidebar">
+        <div class="sidebar-title">Menu</div>
+        <div id="tree-menu-container"></div>
+    </aside>
+    <main id="app-main">
+        <div class="table-header users-grid">
+            <div class="th-col">#</div>
+            <div class="th-col">Nome</div>
+            <div class="th-col">CPF</div>
+            <div class="th-col">Tipo</div>
+            <div class="th-col">Setor</div>
+        </div>
+        <div class="table-content">
+            <div id="empty-state">Carregando...</div>
+            <div id="users-list" class="hidden"></div>
+        </div>
+    </main>
+    <script type="module" src="js/pages/usuarios.js"></script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+/* css/pages/forms.css - REVISADO E CORRIGIDO */
+
+/* --- CONTAINER PRINCIPAL DO FORMULÁRIO --- */
+.form-container {
+    width: 90%;
+    max-width: 600px;
+    max-height: 95vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-surface);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    padding: 30px;
+    margin: 20px auto;
+}
+
+/* --- CABEÇALHO DO FORMULÁRIO --- */
+.form-header-title h2 {
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    font-size: 24px;
+    border-left: 5px solid var(--brand-active);
+    padding-left: 15px;
+}
+
+/* --- SELETOR DE TIPO (EQUIPAMENTOS) --- */
+.type-selector {
+    margin-bottom: 25px;
+}
+
+/* --- GRUPOS DE INPUTS --- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label, .type-selector label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Estilo padrão para todos os Inputs, Selects e Textareas */
+input[type="text"],
+input[type="password"],
+textarea,
+.custom-input {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-input);
+    background-color: var(--bg-input);
+    font-size: 15px;
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+    outline: none;
+    font-family: inherit;
+}
+
+/* Estilo ESPECÍFICO para Select (Remove a seta nativa duplicada) */
+select, 
+.custom-select {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-input);
+    background-color: var(--bg-input);
+    font-size: 15px;
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+
+    /* --- MÁGICA PARA REMOVER A SETA NATIVA --- */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    
+    /* Garante que o fundo seja opaco para cobrir qualquer coisa */
+    background-image: none; 
+}
+
+/* Foco para todos */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--brand-active);
+    box-shadow: 0 0 0 2px var(--brand-hover-light);
+}
+
+input:disabled,
+select:disabled {
+    background-color: #f0f0f0;
+    color: #888;
+    cursor: not-allowed;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Wrappers de ícones (Olho senha, Seta select) */
+.custom-select-wrapper, .caixa-de-senha, .input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.select-icon, .icone-do-olho {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+/* Exceção para o olho da senha que é clicável */
+.icone-do-olho { pointer-events: auto; cursor: pointer; }
+
+
+/* --- INPUT COM BOTÃO AO LADO (+) --- */
+.input-with-action {
+    display: flex;
+    gap: 8px;
+    align-items: stretch; /* Garante mesma altura */
+    width: 100%;
+}
+
+.input-with-action select,
+.input-with-action input {
+    flex: 1; 
+}
+
+.btn-icon-action {
+    width: 46px; /* Ajustado para alinhar com a altura padrão do input */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-medium);
+    background-color: var(--bg-surface);
+    color: var(--brand-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.btn-icon-action:hover:not(:disabled) {
+    background-color: var(--brand-hover-light);
+    border-color: var(--brand-active);
+}
+
+.btn-icon-action:disabled {
+    background-color: #f5f5f5;
+    color: #ccc;
+    cursor: not-allowed;
+    border-color: #eee;
+}
+
+/* --- BOTÕES DE AÇÃO --- */
+
+/* 1. Botão Principal Genérico (Usado em Login, Usuários, etc) */
+.btn-submit {
+    width: 100%;
+    padding: 15px;
+    margin-top: 20px;
+    background-color: var(--brand-active);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-submit:hover {
+    background-color: var(--brand-hover-dark);
+    transform: translateY(-2px);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* 2. Container de Botões Específico (Salvar/Cancelar - Setor) */
+.form-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.btn-save, .btn-cancel {
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s, background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-save {
+    background-color: var(--brand-active);
+    color: white;
+}
+
+.btn-save:hover {
+    background-color: var(--brand-hover-dark);
+    transform: translateY(-1px);
+}
+
+.btn-cancel {
+    background-color: #e0e0e0;
+    color: #555;
+}
+
+.btn-cancel:hover {
+    background-color: #d0d0d0;
+}
+
+/* --- LAYOUT DE GRID (LINHAS COM COLUNAS) --- */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 50% 50% */
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-row.three-col {
+    grid-template-columns: 2fr 1fr; /* 66% 33% (Ideal para Cidade/UF) */
+}
+
+/* --- MODAIS (POP-UPS) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px); /* Efeito moderno de desfoque no fundo */
+    z-index: 2000; /* Alto z-index para ficar acima de tudo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-container {
+    background: var(--bg-surface);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    
+    /* --- CORREÇÃO DO OVERFLOW AQUI --- */
+    max-height: 90vh;       /* Ocupa no máximo 90% da altura da tela */
+    overflow-y: auto;       /* Cria barra de rolagem se passar disso */
+    display: flex;
+    flex-direction: column;
+    
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-container {
+    transform: translateY(0);
+}
+
+.modal-header {
+    background-color: var(--bg-body);
+    padding: 15px 25px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--status-error);
+}
+
+/* Corpo do Modal (onde ficam os inputs) */
+#form-city-modal, #form-company-modal {
+    padding: 25px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-light);
+}
+
+/* --- RESPONSIVIDADE MOBILE --- */
+@media (max-width: 600px) { 
+    .form-container { 
+        width: 100%; 
+        height: 100vh; 
+        max-height: none; 
+        border-radius: 0; 
+        box-shadow: none; 
+        margin: 0; 
+        padding: 20px;
+    } 
+
+    .modal-container {
+        width: 95%;
+    }
+
+    .form-row, .form-row.three-col {
+        grid-template-columns: 1fr; /* Vira uma coluna só no celular */
+        gap: 10px;
+    }
+}

@@ -1,0 +1,118 @@
+/* css/pages/setores.css */
+
+/* --- LISTA DENTRO DO MODAL (ESTILO LIMPO) --- */
+.modal-list {
+    max-height: 350px;
+    overflow-y: auto;
+    margin-top: 15px;
+    background-color: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+}
+
+.modal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+
+.modal-item:last-child {
+    border-bottom: none;
+}
+
+.modal-item:hover {
+    background-color: #f9f9f9;
+}
+
+/* Texto do item */
+.modal-item strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.modal-item small {
+    color: #888;
+    font-size: 12px;
+}
+
+/* --- BOTÕES DE AÇÃO (Lado Direito) --- */
+.modal-item-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-icon-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Botão Editar (Verde Água / Azul) */
+.btn-icon-sm.edit {
+    background-color: var(--brand-active);
+}
+.btn-icon-sm.edit:hover {
+    background-color: var(--brand-hover-dark);
+    transform: translateY(-1px);
+}
+
+/* Botão Excluir (Vermelho) */
+.btn-icon-sm.delete {
+    background-color: var(--status-error);
+}
+.btn-icon-sm.delete:hover {
+    background-color: #cc0000;
+    transform: translateY(-1px);
+}
+
+/* --- CAIXA DE EDIÇÃO (Formulário Interno) --- */
+.edit-form-box {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+.edit-form-box h5 {
+    margin: 0 0 15px 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 5px;
+}
+
+.edit-form-box input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+}
+
+.edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}

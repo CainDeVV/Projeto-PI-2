@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Equipamentos</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components/tabs.css">
+    <link rel="stylesheet" href="css/pages/equipamento.css">
+    
+</head>
+<body>
+    <header id="app-header"></header>
+    <aside id="app-sidebar">
+        <div class="sidebar-title">Menu</div>
+        <div id="tree-menu-container"></div>
+    </aside>
+    <main id="app-main" class="main-transparent">
+        <div class="split-container">
+            <div class="top-list-section">
+                <div class="table-header equip-grid">
+                    <div class="th-col"></div> <div class="th-col">#</div>
+                    <div class="th-col">Nº Série</div>
+                    <div class="th-col">Modelo</div>
+                    <div class="th-col">Sala</div>
+                    <div class="th-col">Usuário</div>
+                    <div class="th-col">Status</div>
+                    <div class="th-col">Setor</div>
+                    <div class="th-col">Contador</div>
+                    <div class="th-col">Tonel</div>
+                    <div class="th-col">Error</div>
+                </div>
+                <div class="table-content">
+                    <div id="empty-state">Carregando...</div>
+                    <div id="equipment-list" class="hidden"></div>
+                </div>
+            </div>
+            <div class="bottom-panel-section">
+                <div class="tabs-header">
+                    <button class="tab-btn active" id="tab-impressoras" onclick="handleTabClick('impressoras')">Impressoras</button>
+                    <button class="tab-btn" id="tab-erros" onclick="handleTabClick('erros')">Erros</button>
+                    <button class="tab-btn" id="tab-opcoes" onclick="handleTabClick('opcoes')">Opções</button>
+                </div>
+                <div class="tab-content-area" id="tab-content-area"></div>
+            </div>
+        </div>
+    </main>
+    <script type="module" src="js/pages/equipamento.js"></script>
+</body>
+</html>

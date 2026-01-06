@@ -1,0 +1,93 @@
+/* css/components/modal.css */
+
+/* Fundo Escuro */
+.modal-overlay {
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: none; /* Começa escondido */
+    justify-content: center; 
+    align-items: center;
+    z-index: 10000 !important; /* Garante que fique acima de tudo */
+    opacity: 0; 
+    transition: opacity 0.2s;
+}
+
+/* ESTADO ATIVO (Corrigido para 'active') */
+.modal-overlay.active { 
+    display: flex; 
+    opacity: 1; 
+    visibility: visible !important; /* Força visibilidade */
+}
+
+/* Caixa do Modal */
+.modal-box {
+    background: white; 
+    padding: 25px; 
+    border-radius: 15px;
+    width: 90%; 
+    max-width: 400px;
+    text-align: left;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transform: scale(0.8); 
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Animação quando ativo */
+.modal-overlay.active .modal-box { 
+    transform: scale(1); 
+}
+
+/* Título */
+.modal-title { 
+    font-size: 24px;
+    color: #444; 
+    margin-bottom: 15px; 
+    font-weight: 600; 
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Texto do Corpo */
+.modal-text { 
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 25px; 
+    line-height: 1.5;
+}
+
+/* Área dos Botões */
+.modal-actions { 
+    display: flex; 
+    justify-content: flex-end; /* Botões à direita */
+    gap: 15px;
+}
+
+/* Botões Genéricos */
+.btn-modal { 
+    padding: 10px 25px; 
+    border-radius: 8px;
+    border: none; 
+    cursor: pointer; 
+    font-size: 16px;
+    font-weight: 600;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-modal:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* Botão Não (Cinza) */
+.btn-cancel { 
+    background: #f0f0f0; 
+    color: #666;
+}
+
+/* Botão Sim (Vermelho para ações destrutivas ou Cor da Marca) */
+.btn-confirm { 
+    background: var(--brand-primary, #92D6D6);
+    color: white;
+}

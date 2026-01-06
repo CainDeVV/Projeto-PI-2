@@ -1,0 +1,145 @@
+-- 1. Tabela de Cidades
+CREATE TABLE CIDADE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    estado CHAR(2) NOT NULL -- Ex: CE, SP
+);
+
+-- 2. Tabela de Empresas 
+CREATE TABLE EMPRESA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    cnpj VARCHAR(20),
+    descricao TEXT,
+    observacao TEXT,
+    id_cidade INT NOT NULL,
+    FOREIGN KEY (id_cidade) REFERENCES CIDADE(id)
+);
+
+-- 3. Tabela de Setores 
+CREATE TABLE SETOR (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa INT NOT NULL,
+    nome VARCHAR(100) NOT NULL,
+    localizacao VARCHAR(150), 
+    observacao TEXT,
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESA(id)
+);
+
+-- 4. Tabela de Usuários 
+CREATE TABLE USUARIO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    cpf VARCHAR(14) UNIQUE,
+    senha VARCHAR(255) NOT NULL, 
+    tipo VARCHAR(50), -- Frontend usa 'tipo', não 'tipo_perfil'
+    id_setor INT, 
+    FOREIGN KEY (id_setor) REFERENCES SETOR(id)
+);
+
+-- 5. Tabela de Impressoras
+CREATE TABLE IMPRESSORA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    modelo VARCHAR(100),
+    numero_serie VARCHAR(100) UNIQUE,
+    sala VARCHAR(50), 
+    
+    -- Ajustado para bater com o Frontend (tonel / contador)
+    tonel VARCHAR(20),       -- Ex: "80%"
+    contador VARCHAR(50),    -- Ex: "1500 pgs"
+    
+    status VARCHAR(20) DEFAULT 'Online',
+    
+    id_setor INT NOT NULL,
+    id_usuario INT,
+    FOREIGN KEY (id_setor) REFERENCES SETOR(id),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id)
+);
+
+-- 6. Tabela de Computadores
+CREATE TABLE COMPUTADOR (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    modelo VARCHAR(100), -- Adicionado modelo
+    numero_serie VARCHAR(100) UNIQUE,
+    nome VARCHAR(100),
+    sala VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'Online',
+    
+    id_setor INT NOT NULL,
+    id_usuario INT, -- Computador pode ter um dono (usuário fixo)
+    
+    FOREIGN KEY (id_setor) REFERENCES SETOR(id),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id)
+);
+
+-- 7. Tabela N:N (Ligação PC <-> Impressora)
+CREATE TABLE COMPUTADOR_IMPRESSORA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_computador INT NOT NULL,
+    id_impressora INT NOT NULL,
+    FOREIGN KEY (id_computador) REFERENCES COMPUTADOR(id),
+    FOREIGN KEY (id_impressora) REFERENCES IMPRESSORA(id)
+);
+
+-- 8. Tabela de Ordem de Serviço (CORRIGIDA)
+CREATE TABLE ORDEM_SERVICO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    descricao_problema TEXT NOT NULL,
+    data_abertura DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_fechamento DATETIME,
+    status VARCHAR(50) DEFAULT 'Aberto',
+    solucao TEXT, -- Adicionado campo solução
+    
+    -- CORREÇÃO: Separando Solicitante e Responsável
+    id_usuario_solicitante INT NOT NULL, 
+    id_usuario_responsavel INT, -- Pode ser NULL se ninguém pegou ainda
+    
+    id_impressora INT,
+    id_computador INT,
+    
+    id_setor INT, -- Opcional, para facilitar filtros rápidos
+    
+    FOREIGN KEY (id_usuario_solicitante) REFERENCES USUARIO(id),
+    FOREIGN KEY (id_usuario_responsavel) REFERENCES USUARIO(id),
+    FOREIGN KEY (id_impressora) REFERENCES IMPRESSORA(id),
+    FOREIGN KEY (id_computador) REFERENCES COMPUTADOR(id),
+    FOREIGN KEY (id_setor) REFERENCES SETOR(id)
+);
+
+-- 9. Tabela de Erros (Hardware Logs)
+CREATE TABLE LOG_ERRO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(100), -- Ex: "Falha de Impressão", "Disco Cheio"
+    descricao TEXT,      -- Detalhes técnicos
+    codigo_erro VARCHAR(50), -- Ex:ERR-001, NET-500
+    severidade VARCHAR(20) DEFAULT 'Alerta', -- 'Info', 'Alerta', 'Crítico'
+    data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    resolvido BOOLEAN DEFAULT FALSE, -- Se o sensor detectou que voltou ao normal
+    
+    id_computador INT,
+    id_impressora INT,
+    
+    e esse erro virou uma O.S.
+    id_os_gerada INT, 
+    
+    FOREIGN KEY (id_computador) REFERENCES COMPUTADOR(id),
+    FOREIGN KEY (id_impressora) REFERENCES IMPRESSORA(id),
+    FOREIGN KEY (id_os_gerada) REFERENCES ORDEM_SERVICO(id)
+);
+
+-- 10. Log de Auditoria (Sistema) (CORRIGIDA)
+CREATE TABLE LOG_AUDITORIA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    acao VARCHAR(50) NOT NULL, -- CREATE, UPDATE, DELETE, LOGIN
+    recurso VARCHAR(100),      -- "Usuário", "Equipamento", "O.S."
+    detalhes TEXT,             -- "Criou o usuário João..."
+    
+    usuario_nome VARCHAR(100), -- Nome do usuário que fez a ação (Snaphost)
+    id_usuario INT,            -- FK opcional
+    id_log_erro INT,    
+
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id),
+    FOREIGN KEY (id_log_erro) REFERENCES LOG_ERRO(id)
+);

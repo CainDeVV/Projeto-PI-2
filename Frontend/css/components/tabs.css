@@ -1,0 +1,8 @@
+.tabs-header { height: 44px; background-color: var(--bg-disabled); display: flex; align-items: stretch; padding: 0; }
+.tab-btn { flex: 1; background-color: var(--brand-primary); color: var(--text-inverse); border: none; font-weight: 500; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border-right: 1px solid rgba(255,255,255,0.2); text-align: left; padding-left: 20px; }
+.tab-btn.active { background-color: var(--brand-active); font-weight: bold; }
+.tab-btn:hover:not(.active):not(:disabled) { background-color: var(--brand-secondary); }
+.tab-btn:disabled { opacity: 1; cursor: not-allowed; background-color: var(--bg-disabled); color: var(--text-disabled); }
+.tab-content-area { flex: 1; padding: 0; display: flex; flex-direction: column; }
+.tab-content-area.padded { padding: 40px; }
+.tab-content-area.centered { justify-content: center; align-items: center; }

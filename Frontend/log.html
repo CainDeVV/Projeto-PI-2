@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log do Sistema</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/log.css">
+</head>
+<body>
+
+    <header id="app-header"></header>
+    
+    <aside id="app-sidebar" class="sidebar">
+        <div class="sidebar-title">Menu</div>
+        <div id="tree-menu-container"></div>
+    </aside>
+
+    <main id="app-main">
+        
+        <div class="table-header log-grid">
+            <div class="th-col">Data/Hora</div>
+            <div class="th-col">Usuário</div>
+            <div class="th-col">Ação</div>
+            <div class="th-col">Recurso</div>
+            <div class="th-col">Detalhes</div>
+        </div>
+
+        <div class="table-content">
+            <div id="empty-state">Carregando...</div>
+            <div id="log-list" class="hidden"></div>
+        </div>
+    </main>
+    
+    <script type="module" src="js/pages/log.js"></script>
+</body>
+</html>

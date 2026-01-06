@@ -1,0 +1,6 @@
+.btn-action { width: 40px; height: 40px; border: 1px solid var(--text-secondary); background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-primary); transition: transform 0.1s; }
+.btn-action:hover { background-color: rgba(255,255,255,0.4); border-color: var(--text-primary); transform: scale(1.05); }
+
+.options-stack { display: flex; flex-direction: column; gap: 15px; width: 300px; }
+.option-btn { width: 100%; padding: 15px 0; background-color: var(--brand-secondary); color: var(--text-inverse); border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s; }
+.option-btn:hover { background-color: var(--brand-active); transform: translateY(-2px); }
