@@ -20,22 +20,18 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest body) {
         
-        // 1. Busca o usuário pelo CPF
         Usuario usuario = repository.findByCpf(body.cpf())
                 .orElse(null);
 
-        // 2. Se não achou o usuário
         if (usuario == null) {
             return ResponseEntity.badRequest().body("Usuário não encontrado!");
         }
 
-        // 3. Verifica a senha (No futuro vamos usar BCrypt)
+        // 3. Verifica a senha (No futuro usar BCrypt)
         if (!usuario.getSenha().equals(body.senha())) {
             return ResponseEntity.badRequest().body("Senha incorreta!");
         }
 
-        // 4. Se deu tudo certo, retorna os dados dele
-        // (O token por enquanto é fake, depois configuramos JWT)
         LoginResponse resposta = new LoginResponse(
             usuario.getId(), 
             usuario.getNome(), 

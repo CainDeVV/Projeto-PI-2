@@ -6,9 +6,7 @@ import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     
-    // O Spring cria o SQL disso aqui sozinho, só pelo nome do método!
     Optional<Usuario> findByCpf(String cpf);
-    
-    // Caso você use email no futuro:
+
     // Optional<Usuario> findByEmail(String email);
 }

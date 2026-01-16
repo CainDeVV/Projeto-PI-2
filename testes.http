@@ -1,0 +1,19 @@
+### 1. CRIAR USUÁRIO (Obrigatório toda vez que reiniciar o Back)
+POST http://localhost:8080/auth/criar-teste
+Content-Type: application/json
+
+{
+  "nome": "Kainã Admin",
+  "cpf": "000.000.000-00",
+  "senha": "123",
+  "tipo": "ADMIN"
+}
+
+### 2. TESTAR LOGIN (Senha Certa)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "cpf": "000.000.000-00",
+  "senha": "123"
+}
