@@ -6,7 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List; // Import necessário para o List.of
+import java.util.List; 
 
 @Configuration
 public class DataSeeder {
@@ -25,15 +25,14 @@ public class DataSeeder {
 
             System.out.println("[DataSeeder] Povoando o banco de dados...");
 
-            // --- 1. CRIAR EMPRESA (Obrigatório antes de Setor) ---
+            // --- 1. CRIAR EMPRESA ---
             Empresa empresa = new Empresa();
             empresa.setNome("Prefeitura de Crateús");
             empresa.setCnpj("00.000.000/0001-00");
             empresa.setDescricao("Sede Principal");
-            // Salva a empresa primeiro para gerar o ID
             empresaRepo.save(empresa);
 
-            // --- 2. SETORES (Vinculados à Empresa) ---
+            // --- 2. SETORES ---
             Setor setorTI = new Setor();
             setorTI.setNome("TI - Suporte");
             setorTI.setLocalizacao("Bloco A");
@@ -44,8 +43,8 @@ public class DataSeeder {
             setorRH.setLocalizacao("Bloco B");
             setorRH.setEmpresa(empresa); 
             
-
-            setorRepo.saveAll(List.of(setorTI, setorRH));
+            List<Setor> listaSetores = List.of(setorTI, setorRH);
+            setorRepo.saveAll(listaSetores);
 
             // --- 3. USUÁRIOS ---
             Usuario admin = new Usuario();
@@ -64,9 +63,10 @@ public class DataSeeder {
             tecnico.setSetor(setorTI);
             tecnico.setEmpresa(empresa);
 
-            usuarioRepo.saveAll(List.of(admin, tecnico));
+            List<Usuario> listaUsuarios = List.of(admin, tecnico);
+            usuarioRepo.saveAll(listaUsuarios);
 
-            // --- 4. COMPUTADORES (5 PCs) ---
+            // --- 4. COMPUTADORES ---
             for (int i = 1; i <= 5; i++) {
                 Computador pc = new Computador();
                 pc.setNome("PC-0" + i);
@@ -78,7 +78,7 @@ public class DataSeeder {
                 computadorRepo.save(pc);
             }
 
-            // --- 5. IMPRESSORAS (Uma com erro pra testar dashboard) ---
+            // --- 5. IMPRESSORAS ---
             Impressora imp1 = new Impressora();
             imp1.setModelo("HP LaserJet");
             imp1.setNumeroSerie("HP-001");
@@ -97,7 +97,9 @@ public class DataSeeder {
             imp2.setStatus("Offline"); 
             imp2.setSetor(setorRH);
 
-            impressoraRepo.saveAll(List.of(imp1, imp2));
+            // CORREÇÃO 3: Definindo o tipo da lista explicitamente
+            List<Impressora> listaImpressoras = List.of(imp1, imp2);
+            impressoraRepo.saveAll(listaImpressoras);
 
             System.out.println("[DataSeeder] Banco pronto com Sucesso!");
         };
