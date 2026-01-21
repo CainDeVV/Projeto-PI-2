@@ -97,7 +97,6 @@ public class DataSeeder {
             imp2.setStatus("Offline"); 
             imp2.setSetor(setorRH);
 
-            // CORREÇÃO 3: Definindo o tipo da lista explicitamente
             List<Impressora> listaImpressoras = List.of(imp1, imp2);
             impressoraRepo.saveAll(listaImpressoras);
 
