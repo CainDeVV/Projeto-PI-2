@@ -25,9 +25,6 @@ public class Usuario {
     @JoinColumn(name = "id_setor") 
     private Setor setor;
 
-    @ManyToOne
-    @JoinColumn(name = "empresa_id")
-    private Empresa empresa;
 
     // --- GETTERS E SETTERS ---
 
@@ -77,13 +74,5 @@ public class Usuario {
 
     public void setSetor(Setor setor) {
         this.setor = setor;
-    }
-
-    public Empresa getEmpresa() {
-        return empresa;
-    }
-
-    public void setEmpresa(Empresa empresa) {
-        this.empresa = empresa;
     }
 }

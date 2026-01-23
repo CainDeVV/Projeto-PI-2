@@ -39,8 +39,8 @@ public class Computador {
     @ManyToMany
     @JoinTable(
         name = "COMPUTADOR_IMPRESSORA",
-        joinColumns = @JoinColumn(name = "computador_id"),
-        inverseJoinColumns = @JoinColumn(name = "impressora_id")
+        joinColumns = @JoinColumn(name = "id_computador"),
+        inverseJoinColumns = @JoinColumn(name = "id_impressora")
     )
     private List<Impressora> impressorasConectadas;
 

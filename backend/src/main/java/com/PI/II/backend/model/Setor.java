@@ -17,10 +17,10 @@ public class Setor {
     private String localizacao;
 
     @Column(columnDefinition = "TEXT")
-    private String observasao;
+    private String observacao; 
 
     @ManyToOne
-    @JoinColumn(name = "empresa_id", nullable = false)
+    @JoinColumn(name = "id_empresa", nullable = false)
     private Empresa empresa;
 
     // getters e setters
@@ -37,8 +37,8 @@ public class Setor {
         return localizacao;
     }
 
-    public String getObservasao() {
-        return observasao;
+    public String getObservacao() {
+        return observacao;
     }
 
     public Empresa getEmpresa() {
@@ -57,12 +57,11 @@ public class Setor {
         this.localizacao = localizacao;
     }
 
-    public void setObservasao(String observasao) {
-        this.observasao = observasao;
+    public void setObservacao(String observacao) {
+        this.observacao = observacao;
     }
 
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
     }
-
 }

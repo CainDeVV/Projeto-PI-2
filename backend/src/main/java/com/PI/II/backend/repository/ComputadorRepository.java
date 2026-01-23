@@ -2,6 +2,21 @@ package com.PI.II.backend.repository;
 
 import com.PI.II.backend.model.Computador;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
 public interface ComputadorRepository extends JpaRepository<Computador, Long> {
+    
+    // --- Validação (Usado no cadastro para evitar duplicidade - RF02) ---
+    boolean existsByNumeroSerie(String numeroSerie);
+
+    // --- Filtros (Usado na listagem - RF14) ---
+    
+    // Filtra por Status E Setor ao mesmo tempo
+    List<Computador> findByStatusAndSetorId(String status, Long setorId);
+    
+    // Filtra só por Status
+    List<Computador> findByStatus(String status);
+    
+    // Filtra só por Setor
+    List<Computador> findBySetorId(Long setorId);
 }

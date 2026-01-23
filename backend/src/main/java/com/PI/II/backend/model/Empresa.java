@@ -23,7 +23,7 @@ public class Empresa {
     private String observacao;
 
     @ManyToOne
-    @JoinColumn(name = "cidade_id", nullable = false)
+    @JoinColumn(name = "id_cidade", nullable = false) 
     private Cidade cidade;
 
      // getters e setters
@@ -76,8 +76,4 @@ public class Empresa {
     public void setCidade(Cidade cidade) {
         this.cidade = cidade;
     }
-
-   
-
-
 }
