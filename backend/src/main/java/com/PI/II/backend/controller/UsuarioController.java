@@ -16,7 +16,7 @@ public class UsuarioController {
     @Autowired
     private UsuarioRepository usuarioRepo;
 
-    // LISTAR TODOS (Para o dropdown de "Responsável" na O.S.)
+    // LISTAR TODOS 
     @GetMapping
     public List<Usuario> listar() {
         return usuarioRepo.findAll();

@@ -6,10 +6,10 @@ import java.util.List;
 
 public interface ComputadorRepository extends JpaRepository<Computador, Long> {
     
-    // --- Validação (Usado no cadastro para evitar duplicidade - RF02) ---
+    // Validação 
     boolean existsByNumeroSerie(String numeroSerie);
 
-    // --- Filtros (Usado na listagem - RF14) ---
+    // Filtros 
     
     // Filtra por Status E Setor ao mesmo tempo
     List<Computador> findByStatusAndSetorId(String status, Long setorId);

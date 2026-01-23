@@ -26,7 +26,7 @@ public class Usuario {
     private Setor setor;
 
 
-    // --- GETTERS E SETTERS ---
+    // getters e setters
 
     public Long getId() {
         return id;

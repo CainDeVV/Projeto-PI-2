@@ -25,7 +25,7 @@ public class OrdemServico {
     @Column(length = 50)
     private String status = "Aberto"; 
 
-    // --- RELACIONAMENTOS  ---
+    // Relacionamentos
 
     @ManyToOne
     @JoinColumn(name = "id_usuario_solicitante", nullable = false)

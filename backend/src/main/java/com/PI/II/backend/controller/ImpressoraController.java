@@ -15,7 +15,7 @@ public class ImpressoraController {
     @Autowired
     private ImpressoraRepository impressoraRepo;
 
-    // LISTAR (Com filtros opcionais de Status e Modelo)
+    // LISTAR 
     @GetMapping
     public List<Impressora> listar(
             @RequestParam(required = false) String status,
@@ -34,12 +34,10 @@ public class ImpressoraController {
     // CADASTRAR
     @PostMapping
     public ResponseEntity<?> salvar(@RequestBody Impressora imp) {
-        // 1. Validação de Serial Único
         if (impressoraRepo.existsByNumeroSerie(imp.getNumeroSerie())) {
             return ResponseEntity.badRequest().body("Erro: Já existe impressora com este Número de Série!");
         }
 
-        // 2. Regra de Negócio: Valores Padrão (Se vier vazio, preenche)
         if (imp.getStatus() == null || imp.getStatus().isEmpty()) {
             imp.setStatus("Online");
         }

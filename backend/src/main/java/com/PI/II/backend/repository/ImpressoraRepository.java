@@ -6,10 +6,9 @@ import java.util.List;
 
 public interface ImpressoraRepository extends JpaRepository<Impressora, Long> {
 
-    // Validação de Duplicidade
     boolean existsByNumeroSerie(String numeroSerie);
 
-    // Filtros para o RF14 (Status e Modelo)
+    // Filtros
     List<Impressora> findByStatusAndModelo(String status, String modelo);
     
     List<Impressora> findByStatus(String status);
