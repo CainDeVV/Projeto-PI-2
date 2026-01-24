@@ -73,7 +73,7 @@ public class DataSeeder {
             // 5. USUÁRIOS
             Usuario admin = new Usuario();
             admin.setNome("Cainã Admin");
-            admin.setCpf("000.000.000-00");
+            admin.setCpf("081.887.593-33");
             admin.setSenha("123");
             admin.setTipo("ADMIN");
             admin.setSetor(setorTISalvo);

@@ -1,5 +1,7 @@
 package com.PI.II.backend.controller;
 
+import com.PI.II.backend.dto.LoginRequest; 
+import com.PI.II.backend.dto.LoginResponse; 
 import com.PI.II.backend.model.Usuario;
 import com.PI.II.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,16 +24,25 @@ public class UsuarioController {
         return usuarioRepo.findAll();
     }
 
-    // SIMULAÇÃO DE LOGIN 
-    // Recebe um JSON com cpf e senha. Retorna o Usuário se bater.
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Usuario dadosLogin) {
-        Optional<Usuario> usuarioEncontrado = usuarioRepo.findByCpf(dadosLogin.getCpf());
+    @PostMapping("/auth/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest dadosLogin) {
+        // Busca usuário pelo CPF
+        Optional<Usuario> usuarioEncontrado = usuarioRepo.findByCpf(dadosLogin.cpf());
 
         if (usuarioEncontrado.isPresent()) {
             Usuario user = usuarioEncontrado.get();
-            if (user.getSenha().equals(dadosLogin.getSenha())) {
-                return ResponseEntity.ok(user);
+            
+            // Compara a senha
+            if (user.getSenha().equals(dadosLogin.senha())) {
+                
+                LoginResponse response = new LoginResponse(
+                    user.getId(),
+                    user.getNome(),
+                    user.getTipo(), 
+                    "token-falso-para-aprovacao"
+                );
+                
+                return ResponseEntity.ok(response);
             }
         }
         

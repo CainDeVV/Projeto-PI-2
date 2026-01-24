@@ -12,25 +12,32 @@ class AuthServiceClass {
 
     async login(cpf, password) {
         try {
-            // Chama a API (Real ou Mock)
-            const response = await this.http.login({ cpf, password });
+            const response = await this.http.login({ cpf, senha: password });
             
-            if (response.token && response.user) {
+            // O Backend retorna o JSON plano (token, nome, id, tipo) 
+            // e não um objeto 'user' aninhado.
+            if (response.token) {
                 localStorage.setItem(this.tokenKey, response.token);
-                localStorage.setItem(this.userKey, JSON.stringify(response.user));
 
-                // --- CORREÇÃO: REGISTRAR LOG MANUALMENTE ---
-                // Num backend real, o servidor faria isso. No Mock, fazemos aqui.
-                // Usamos import dinâmico para evitar Travamento Cíclico (Auth <-> Log)
+                const userObj = {
+                    id: response.id,
+                    nome: response.nome,
+                    // Garante que pega o tipo independente se vier como 'tipo' ou 'tipoPerfil'
+                    tipo: response.tipo || response.tipoPerfil 
+                };
+
+                localStorage.setItem(this.userKey, JSON.stringify(userObj));
+
+                // Registrar Log (Opcional)
                 try {
                     const { LogService } = await import('./log.service.js');
-                    await LogService.add('LOGIN', 'Sistema', `Usuário ${response.user.nome} entrou.`);
+                    await LogService.add('LOGIN', 'Sistema', `Usuário ${userObj.nome} entrou.`);
                 } catch (e) {
                     console.warn('Não foi possível registrar o log de login:', e);
                 }
                 
                 // Redirecionamento
-                const tipo = response.user.tipo.toLowerCase();
+                const tipo = userObj.tipo.toLowerCase();
                 if (tipo.includes('usuário') || tipo.includes('comum')) {
                     window.location.href = ROUTES.USER_PANEL;
                 } else {
