@@ -24,7 +24,7 @@ public class HardwareSimulator {
     private final Random random = new Random();
 
  
-    // Consumo de Tinta Variável: Roda a cada 30 segundos (30000 ms) para testarmos rápido.
+    // Consumo de Tinta Variável: Roda a cada 10 segundos (10000 ms) para testarmos rápido.
     @Scheduled(fixedRate = 10000)
     public void simularConsumoTinta() {
         List<Impressora> impressoras = impressoraRepo.findAll();
@@ -58,8 +58,8 @@ public class HardwareSimulator {
         }
     }
 
-    // Geração de Erros Aleatórios: Roda a cada 1 minuto (10000 ms) - Chance de 5% de ocorrer um erro.
-    @Scheduled(fixedRate = 60000)
+    // Geração de Erros Aleatórios: Roda a cada 10 segundos (10000 ms) - Chance de 5% de ocorrer um erro.
+    @Scheduled(fixedRate = 10000)
     public void simularErrosAleatorios() {
         // Se for menor que 5, gera erro.
         if (random.nextInt(100) < 5) {
