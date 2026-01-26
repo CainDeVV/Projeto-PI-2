@@ -1,19 +1,18 @@
 /* js/config/constants.js */
 export const APP_CONFIG = {
+<<<<<<< HEAD
     API_BASE_URL: 'http://localhost:8080', 
     USE_MOCK_DATA: false,
     // false = Usa o Backend Java
     // true = Usa dados falsos (teste)
+=======
+    API_BASE_URL: 'http://localhost:8080'
+>>>>>>> origin/feature/setores-crud
 };
 
 export const STORAGE_KEYS = {
     TOKEN: 'sys_token',
-    USER: 'sys_user',
-    DB_USERS: 'app_users',
-    DB_EQUIPMENTS: 'app_equipments',
-    DB_LOGS: 'app_logs',
-    DB_OS: 'app_os',
-    DB_LOG_ERROS: 'app_log_erros'
+    USER: 'sys_user'
 };
 
 export const ROUTES = {
