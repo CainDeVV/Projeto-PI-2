@@ -220,16 +220,19 @@ class CadastroSetorPage extends BaseFormPage {
 
         newForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // --- CORREÇÃO AQUI: Captura e converte para número ---
+            const empresaVal = this.companySelect.value;
+            const empresaId = empresaVal ? parseInt(empresaVal) : null;
+
             const formData = {
                 nome: document.getElementById('nome').value.trim(),
                 localizacao: document.getElementById('localizacao').value.trim(),
                 observacao: document.getElementById('observacao').value.trim(),
-                // Importante: Service espera 'empresa' como ID para salvar
-                // (No SQL: id_empresa)
-                empresa: this.companySelect.value 
+                empresa: empresaId // Agora envia um Número ou Null (nunca string vazia)
             };
 
-            if (!formData.nome || !this.citySelect.value || !formData.empresa) {
+            if (!formData.nome || !formData.empresa) {
                 return showToast('Preencha os campos obrigatórios (*)', 'error');
             }
 

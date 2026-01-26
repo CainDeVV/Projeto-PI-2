@@ -1,165 +1,133 @@
 /* js/services/equipamento.service.js */
 import { BaseService } from '../core/BaseService.js';
-import { MockDatabase } from '../core/MockDatabase.js';
-import { APP_CONFIG } from '../config/constants.js'; 
+import { APP_CONFIG } from '../config/constants.js';
 
 class EquipamentoServiceClass extends BaseService {
     constructor() {
-        super('equipments', 'Equipamento'); 
+        super('equipments', 'Equipamento'); // Placeholder, endpoints reais definidos abaixo
     }
 
-    // LEITURA 
+    // --- LEITURA UNIFICADA ---
     async getAll() {
-        // --- SE FOR API REAL ---
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            try {
-                console.log(">>> TENTANDO BUSCAR EQUIPAMENTOS NA API (VIA FETCH)...");
-
-                // Configuração manual para garantir que o token vá corretamente
-                const headers = { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                };
-
-                // 1. Busca Computadores e Impressoras (USANDO FETCH DIRETO para evitar erro de undefined)
-                const [pcRes, impRes] = await Promise.all([
-                    fetch('http://localhost:8080/computadores', { headers }),
-                    fetch('http://localhost:8080/impressoras', { headers })
-                ]);
-
-                // Verifica se deu erro na requisição
-                if (!pcRes.ok) throw new Error(`Erro ao buscar PCs: ${pcRes.status}`);
-                if (!impRes.ok) throw new Error(`Erro ao buscar Impressoras: ${impRes.status}`);
-
-                // Converte a resposta para JSON
-                const computadores = await pcRes.json();
-                const impressoras = await impRes.json();
-
-                console.log(">>> SUCESSO! PCs:", computadores.length, "Imps:", impressoras.length);
-
-                // 2. Normaliza PCs
-                const pcs = computadores.map(pc => ({
-                    ...pc,
-                    tipo: 'computador',
-                    setor: pc.setor ? (pc.setor.nome || pc.setor) : '-',
-                    usuario: pc.usuario ? (pc.usuario.nome || pc.usuario) : '-',
-                    status: pc.status || 'Offline',
-                    modelo: pc.modelo,
-                    numeroSerie: pc.numeroSerie || pc.numero_serie
-                }));
-
-                // 3. Normaliza Impressoras
-                const imps = impressoras.map(imp => ({
-                    ...imp,
-                    tipo: 'impressora',
-                    setor: imp.setor ? (imp.setor.nome || imp.setor) : '-',
-                    usuario: '-',
-                    tonel: imp.tonel || '0%',
-                    contador: imp.contador || '0',
-                    status: imp.status || 'Offline',
-                    modelo: imp.modelo,
-                    numeroSerie: imp.numeroSerie || imp.numero_serie
-                }));
-
-                return [...pcs, ...imps].sort((a, b) => {
-                    if (a.tipo === b.tipo) return 0;
-                    return a.tipo === 'computador' ? -1 : 1;
-                });
-
-            } catch (error) {
-                console.error("ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
-                
-                if (error.message && error.message.includes('fetch')) {
-                     alert(`Erro de Conexão: O Backend está rodando na porta 8080?`);
-                } else {
-                     alert(`Erro ao carregar equipamentos: ${error.message}`);
-                }
-                
-                return [];
-            }
-        }
-
-        // LÓGICA DO MOCK 
-        const equips = await MockDatabase.get('equipments');
-        const sectors = await MockDatabase.get('sectors');
-        const users = await MockDatabase.get('users');
-
-        const hydratedData = equips.map(eq => {
-            const sec = sectors.find(s => String(s.id) === String(eq.id_setor));
-            
-            let userName = eq.usuario || '-'; 
-            if (eq.id_usuario) {
-                const u = users.find(user => String(user.id) === String(eq.id_usuario));
-                if (u) userName = u.nome;
-            }
-
-            return {
-                ...eq,
-                setor: sec ? sec.nome : 'N/A',
-                usuario: userName,
-                id_setor: eq.id_setor,
-                id_usuario: eq.id_usuario
+        try {
+            // Constrói headers manualmente para o fetch
+            const headers = { 
+                'Content-Type': 'application/json',
+                // Reutiliza o método de obter token do HttpClient
+                ...this.http._getHeaders() 
             };
-        });
 
-        return hydratedData.sort((a, b) => {
-            if (a.tipo === b.tipo) return 0;
-            return a.tipo === 'computador' ? -1 : 1;
-        });
+            // Busca os dois tipos em paralelo
+            const [pcRes, impRes] = await Promise.all([
+                fetch(`${APP_CONFIG.API_BASE_URL}/computadores`, { headers }),
+                fetch(`${APP_CONFIG.API_BASE_URL}/impressoras`, { headers })
+            ]);
+
+            if (!pcRes.ok) throw new Error(`Erro ao buscar PCs: ${pcRes.status}`);
+            if (!impRes.ok) throw new Error(`Erro ao buscar Impressoras: ${impRes.status}`);
+
+            const computadores = await pcRes.json();
+            const impressoras = await impRes.json();
+
+            // 2. Normaliza PCs
+            const pcs = computadores.map(pc => ({
+                ...pc,
+                tipo: 'computador',
+                setor: pc.setor ? (pc.setor.nome || pc.setor) : '-',
+                usuario: pc.usuario ? (pc.usuario.nome || pc.usuario) : '-',
+                status: pc.status || 'Offline',
+                modelo: pc.modelo,
+                numeroSerie: pc.numeroSerie || pc.numero_serie,
+                id_setor: pc.setor ? pc.setor.id : null
+            }));
+
+            // 3. Normaliza Impressoras
+            const imps = impressoras.map(imp => ({
+                ...imp,
+                tipo: 'impressora',
+                setor: imp.setor ? (imp.setor.nome || imp.setor) : '-',
+                usuario: '-',
+                tonel: imp.tonel || '0%',
+                contador: imp.contador || '0',
+                status: imp.status || 'Offline',
+                modelo: imp.modelo,
+                numeroSerie: imp.numeroSerie || imp.numero_serie,
+                id_setor: imp.setor ? imp.setor.id : null
+            }));
+
+            return [...pcs, ...imps].sort((a, b) => {
+                if (a.tipo === b.tipo) return 0;
+                return a.tipo === 'computador' ? -1 : 1;
+            });
+
+        } catch (error) {
+            console.error("ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
+            return [];
+        }
     }
 
-    // ESCRITA 
+    // --- ESCRITA DIRECIONADA ---
     async add(data) {
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            const endpoint = data.tipo === 'computador' ? 'computadores' : 'impressoras';
-            
-            const response = await fetch(`http://localhost:8080/${endpoint}`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
+        const endpoint = data.tipo === 'computador' ? 'computadores' : 'impressoras';
+        const url = `${APP_CONFIG.API_BASE_URL}/${endpoint}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: this.http._getHeaders(),
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || "Erro ao salvar equipamento");
         }
-        return await this.save(data); 
+        
+        // Log manual já que não usamos o save do BaseService
+        this._logAction('CREATE', `Criou ${data.tipo}: ${data.modelo}`);
+        
+        return await response.json();
     }
 
     async update(id, data) {
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            const endpoint = data.tipo === 'computador' ? `computadores/${id}` : `impressoras/${id}`;
-            
-            const response = await fetch(`http://localhost:8080/${endpoint}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        }
-        return await this.save({ ...data, id });
+        const endpoint = data.tipo === 'computador' ? `computadores/${id}` : `impressoras/${id}`;
+        const url = `${APP_CONFIG.API_BASE_URL}/${endpoint}`;
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: this.http._getHeaders(),
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error("Erro ao atualizar equipamento");
+        
+        this._logAction('UPDATE', `Editou ${data.tipo}: ${data.modelo}`);
+        return await response.json();
     }
 
     async delete(id) {
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            const headers = { 'Authorization': 'Bearer token-falso-para-aprovacao' };
-            try {
-                // Tenta apagar como computador
-                const res = await fetch(`http://localhost:8080/computadores/${id}`, { method: 'DELETE', headers });
-                if (!res.ok) throw new Error('Not PC');
-            } catch (e) {
-                // Se falhar, tenta como impressora
-                await fetch(`http://localhost:8080/impressoras/${id}`, { method: 'DELETE', headers });
+        const headers = this.http._getHeaders();
+        let tipoApagado = 'Equipamento';
+
+        try {
+            // Tenta apagar como computador
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/computadores/${id}`, { method: 'DELETE', headers });
+            if (res.ok) {
+                tipoApagado = 'Computador';
+            } else {
+                throw new Error('Not PC');
             }
-            return;
+        } catch (e) {
+            // Se falhar, tenta como impressora
+            const resImp = await fetch(`${APP_CONFIG.API_BASE_URL}/impressoras/${id}`, { method: 'DELETE', headers });
+            if (resImp.ok) tipoApagado = 'Impressora';
+            else return false;
         }
-        return await super.delete(id);
+        
+        this._logAction('DELETE', `Excluiu ${tipoApagado} ID ${id}`);
+        return true;
     }
 
-    // FILTROS (MANTIDOS IGUAIS)
+    // --- OUTROS ---
     async getBySector(sectorName) {
         const data = await this.getAll();
         return data.filter(e => e.setor === sectorName);
@@ -170,46 +138,34 @@ class EquipamentoServiceClass extends BaseService {
         return data.filter(e => e.tipo === 'impressora' && String(e.connectedTo) === String(parentId));
     }
 
-    // HISTÓRICO DE ERROS 
     async getErrorHistory(equipId) {
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            return []; 
-        }
-
-        const allErrors = await MockDatabase.get('log_erros');
-        
-        return allErrors.filter(err => 
-            String(err.id_computador) === String(equipId) || 
-            String(err.id_impressora) === String(equipId)
-        ).sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+        try {
+            // Chama o LogErroController (que busca tudo) e filtramos no cliente
+            // Idealmente teríamos um endpoint backend /log_erros/equipamento/{id}
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/log_erros`, { headers: this.http._getHeaders() });
+            const allErrors = await res.json();
+            
+            return allErrors.filter(err => 
+                (err.computador && String(err.computador.id) === String(equipId)) || 
+                (err.impressora && String(err.impressora.id) === String(equipId))
+            ).sort((a, b) => new Date(b.dataHora) - new Date(a.dataHora));
+            
+        } catch (e) { return []; }
     }
 
-    // VERIFICAÇÕES DE INTEGRIDADE
     async checkDependencies(id) {
-        const childPrinters = await this.getPrintersByParentId(id);
-        
-        if (childPrinters.length > 0) {
-            return {
-                allowed: false,
-                message: `Possui ${childPrinters.length} impressora(s) conectada(s).`
-            };
-        }
-
         const { OsService } = await import('./os.service.js');
         const allOs = await OsService.getAll();
         
         const hasOpenOs = allOs.some(os => 
-            (String(os.id_computador) === String(id) || String(os.id_impressora) === String(id)) 
-            && os.status === 'Aberto'
+            ((os.computador && String(os.computador.id) === String(id)) || 
+             (os.impressora && String(os.impressora.id) === String(id))) && 
+            os.status === 'Aberto'
         );
 
         if (hasOpenOs) {
-            return {
-                allowed: false,
-                message: 'Existe O.S. ABERTA para este equipamento.'
-            };
+            return { allowed: false, message: 'Existe O.S. ABERTA para este equipamento.' };
         }
-
         return { allowed: true };
     }
 }

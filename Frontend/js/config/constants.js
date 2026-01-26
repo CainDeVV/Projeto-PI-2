@@ -1,18 +1,10 @@
 export const APP_CONFIG = {
-    API_BASE_URL: 'http://localhost:8080',
-    USE_MOCK_DATA: false,
-    // 1. Coloque a URL do Backend
-    // 2. True usa o MockService, false usa o Backend
+    API_BASE_URL: 'http://localhost:8080'
 };
 
 export const STORAGE_KEYS = {
     TOKEN: 'sys_token',
-    USER: 'sys_user',
-    DB_USERS: 'app_users',
-    DB_EQUIPMENTS: 'app_equipments',
-    DB_LOGS: 'app_logs',
-    DB_OS: 'app_os',
-    DB_LOG_ERROS: 'app_log_erros'
+    USER: 'sys_user'
 };
 
 export const ROUTES = {
