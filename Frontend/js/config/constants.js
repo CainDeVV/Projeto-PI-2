@@ -1,7 +1,6 @@
 /* js/config/constants.js */
 export const APP_CONFIG = {
     API_BASE_URL: 'http://localhost:8080', 
-    
     USE_MOCK_DATA: false,
     // false = Usa o Backend Java
     // true = Usa dados falsos (teste)
