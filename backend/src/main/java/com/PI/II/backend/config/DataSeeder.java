@@ -80,13 +80,21 @@ public class DataSeeder {
 
             Usuario tecnico = new Usuario();
             tecnico.setNome("João Técnico");
-            tecnico.setCpf("111.111.111-11");
+            tecnico.setCpf("693.082.880-74");
             tecnico.setSenha("123");
             tecnico.setTipo("TECNICO");
             tecnico.setSetor(setorTISalvo);
 
+            Usuario comum = new Usuario();
+            comum.setNome("Maria do RH");
+            comum.setCpf("486.051.580-34");
+            comum.setSenha("123");
+            comum.setTipo("Comum");
+            comum.setSetor(setorRHSalvo);
+
             if (usuarioRepo.findByCpf(admin.getCpf()).isEmpty()) usuarioRepo.save(admin);
             if (usuarioRepo.findByCpf(tecnico.getCpf()).isEmpty()) usuarioRepo.save(tecnico);
+            if (usuarioRepo.findByCpf(comum.getCpf()).isEmpty()) usuarioRepo.save(comum);
 
             // Recarrega do banco para garantir que temos os IDs
             Usuario adminSalvo = usuarioRepo.findByCpf(admin.getCpf()).get();
