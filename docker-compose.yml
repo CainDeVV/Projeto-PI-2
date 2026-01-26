@@ -1,8 +1,11 @@
+version: '3.8'
+
 services:
   # 1. Banco de Dados (PostgreSQL)
   db:
     image: postgres:15
     container_name: pi2-database
+    restart: always
     environment:
       POSTGRES_DB: projeto_db
       POSTGRES_USER: postgres
@@ -16,6 +19,7 @@ services:
   backend:
     build: ./backend
     container_name: pi2-backend
+    restart: always
     ports:
       - "8080:8080"
     depends_on:
@@ -33,11 +37,23 @@ services:
   frontend:
     build: ./frontend
     container_name: pi2-frontend
+    restart: always
     ports:
       - "3000:80"  # Acesse no navegador via http://localhost:3000
     networks:
       - pi2-network
+      
+  # 4. Simulador de Impressoras (Java)
+  simulator:
+    build: ./simulator       
+    container_name: pi2-simulator
+    restart: always
+    depends_on:
+      - backend              # Só liga depois que o Backend estiver de pé
+    networks:
+      - pi2-network        
+
 
 networks:
-  pi2-network:
+  pi2-network:               
     driver: bridge

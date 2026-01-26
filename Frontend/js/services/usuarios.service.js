@@ -2,18 +2,48 @@
 import { BaseService } from '../core/BaseService.js';
 import { EquipamentoService } from './equipamento.service.js';
 import { MockDatabase } from '../core/MockDatabase.js';
-import { APP_CONFIG } from '../config/constants.js'; // Importante para verificar o modo
+import { APP_CONFIG } from '../config/constants.js'; 
 
 class UsuariosServiceClass extends BaseService {
     constructor() {
-        super('users', 'Usuário');
+        super('usuarios', 'Usuário');
     }
 
     // --- LEITURA HIDRATADA (JOIN) ---
     async getAll() {
-        // SE FOR API REAL: Retorna direto (Backend entrega DTO pronto)
+        // SE FOR API REAL: Trata os dados do Java para a Tabela
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+            try {
+                // this.http.get() já bate em /usuarios
+                const response = await this.http.get();
+
+                return response.map(user => {
+                    // Tenta resolver o nome do setor vindo do Java
+                    // O Java pode mandar: { setor: { nome: "TI" } } OU { setor: "TI" }
+                    let nomeSetor = 'N/A';
+                    
+                    if (user.setor) {
+                        nomeSetor = user.setor.nome || user.setor;
+                    } else if (user.nomeSetor) {
+                        nomeSetor = user.nomeSetor;
+                    }
+
+                    return {
+                        ...user,
+                        // Normaliza campos para a tabela
+                        id: user.id,
+                        nome: user.nome,
+                        email: user.email || user.login || '-',
+                        // Garante que o tipo venha correto
+                        tipo: user.tipo || user.tipoPerfil || 'Comum',
+                        // Coluna visual 'setor'
+                        setor: nomeSetor
+                    };
+                });
+            } catch (error) {
+                console.error("Erro ao buscar usuários da API:", error);
+                return [];
+            }
         }
 
         // --- LÓGICA DO MOCK (JOIN MANUAL) ---
@@ -61,11 +91,6 @@ class UsuariosServiceClass extends BaseService {
         if (!userToDelete) return { allowed: true };
 
         const allEquipments = await EquipamentoService.getAll();
-        
-        // Verifica se existe algum equipamento vinculado a este usuário.
-        // Checagem Híbrida:
-        // 1. Pelo Nome (eq.usuario) -> Como o Mock atual funciona
-        // 2. Pelo ID (eq.id_usuario) -> Como o Banco Relacional funciona
         const hasEquipment = allEquipments.some(eq => 
             eq.usuario === userToDelete.nome || 
             String(eq.id_usuario) === String(id)

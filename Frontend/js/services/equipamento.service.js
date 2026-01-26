@@ -1,21 +1,85 @@
 /* js/services/equipamento.service.js */
 import { BaseService } from '../core/BaseService.js';
 import { MockDatabase } from '../core/MockDatabase.js';
-import { APP_CONFIG } from '../config/constants.js'; // Importante para verificar o modo
+import { APP_CONFIG } from '../config/constants.js'; 
 
 class EquipamentoServiceClass extends BaseService {
     constructor() {
-        super('equipments', 'Equipamento');
+        super('equipments', 'Equipamento'); 
     }
 
-    // --- LEITURA HIDRATADA (JOIN) ---
+    // LEITURA 
     async getAll() {
-        // SE FOR API REAL: O Backend já deve retornar os dados com joins feitos (DTO)
+        // --- SE FOR API REAL ---
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+            try {
+                console.log(">>> TENTANDO BUSCAR EQUIPAMENTOS NA API (VIA FETCH)...");
+
+                // Configuração manual para garantir que o token vá corretamente
+                const headers = { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer token-falso-para-aprovacao'
+                };
+
+                // 1. Busca Computadores e Impressoras (USANDO FETCH DIRETO para evitar erro de undefined)
+                const [pcRes, impRes] = await Promise.all([
+                    fetch('http://localhost:8080/computadores', { headers }),
+                    fetch('http://localhost:8080/impressoras', { headers })
+                ]);
+
+                // Verifica se deu erro na requisição
+                if (!pcRes.ok) throw new Error(`Erro ao buscar PCs: ${pcRes.status}`);
+                if (!impRes.ok) throw new Error(`Erro ao buscar Impressoras: ${impRes.status}`);
+
+                // Converte a resposta para JSON
+                const computadores = await pcRes.json();
+                const impressoras = await impRes.json();
+
+                console.log(">>> SUCESSO! PCs:", computadores.length, "Imps:", impressoras.length);
+
+                // 2. Normaliza PCs
+                const pcs = computadores.map(pc => ({
+                    ...pc,
+                    tipo: 'computador',
+                    setor: pc.setor ? (pc.setor.nome || pc.setor) : '-',
+                    usuario: pc.usuario ? (pc.usuario.nome || pc.usuario) : '-',
+                    status: pc.status || 'Offline',
+                    modelo: pc.modelo,
+                    numeroSerie: pc.numeroSerie || pc.numero_serie
+                }));
+
+                // 3. Normaliza Impressoras
+                const imps = impressoras.map(imp => ({
+                    ...imp,
+                    tipo: 'impressora',
+                    setor: imp.setor ? (imp.setor.nome || imp.setor) : '-',
+                    usuario: '-',
+                    tonel: imp.tonel || '0%',
+                    contador: imp.contador || '0',
+                    status: imp.status || 'Offline',
+                    modelo: imp.modelo,
+                    numeroSerie: imp.numeroSerie || imp.numero_serie
+                }));
+
+                return [...pcs, ...imps].sort((a, b) => {
+                    if (a.tipo === b.tipo) return 0;
+                    return a.tipo === 'computador' ? -1 : 1;
+                });
+
+            } catch (error) {
+                console.error("❌ ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
+                
+                if (error.message && error.message.includes('fetch')) {
+                     alert(`Erro de Conexão: O Backend está rodando na porta 8080?`);
+                } else {
+                     alert(`Erro ao carregar equipamentos: ${error.message}`);
+                }
+                
+                return [];
+            }
         }
 
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
+        // LÓGICA DO MOCK 
         const equips = await MockDatabase.get('equipments');
         const sectors = await MockDatabase.get('sectors');
         const users = await MockDatabase.get('users');
@@ -23,7 +87,6 @@ class EquipamentoServiceClass extends BaseService {
         const hydratedData = equips.map(eq => {
             const sec = sectors.find(s => String(s.id) === String(eq.id_setor));
             
-            // Resolve Usuário
             let userName = eq.usuario || '-'; 
             if (eq.id_usuario) {
                 const u = users.find(user => String(user.id) === String(eq.id_usuario));
@@ -32,35 +95,71 @@ class EquipamentoServiceClass extends BaseService {
 
             return {
                 ...eq,
-                // Nome para exibir na tabela
                 setor: sec ? sec.nome : 'N/A',
-                // Nome do usuário resolvido
                 usuario: userName,
-                
-                // IDs mantidos para formulários
                 id_setor: eq.id_setor,
                 id_usuario: eq.id_usuario
             };
         });
 
-        // Ordenação (Computadores primeiro)
         return hydratedData.sort((a, b) => {
             if (a.tipo === b.tipo) return 0;
             return a.tipo === 'computador' ? -1 : 1;
         });
     }
 
-    // --- ESCRITA ---
+    // ESCRITA 
     async add(data) {
-        return await this.save(data); // Usa o método save do BaseService
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const endpoint = data.tipo === 'computador' ? 'computadores' : 'impressoras';
+            
+            const response = await fetch(`http://localhost:8080/${endpoint}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer token-falso-para-aprovacao'
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        }
+        return await this.save(data); 
     }
 
     async update(id, data) {
-        // Garante que o ID esteja no objeto para o save() identificar que é update
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const endpoint = data.tipo === 'computador' ? `computadores/${id}` : `impressoras/${id}`;
+            
+            const response = await fetch(`http://localhost:8080/${endpoint}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer token-falso-para-aprovacao'
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        }
         return await this.save({ ...data, id });
     }
 
-    // --- FILTROS ---
+    async delete(id) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const headers = { 'Authorization': 'Bearer token-falso-para-aprovacao' };
+            try {
+                // Tenta apagar como computador
+                const res = await fetch(`http://localhost:8080/computadores/${id}`, { method: 'DELETE', headers });
+                if (!res.ok) throw new Error('Not PC');
+            } catch (e) {
+                // Se falhar, tenta como impressora
+                await fetch(`http://localhost:8080/impressoras/${id}`, { method: 'DELETE', headers });
+            }
+            return;
+        }
+        return await super.delete(id);
+    }
+
+    // FILTROS (MANTIDOS IGUAIS)
     async getBySector(sectorName) {
         const data = await this.getAll();
         return data.filter(e => e.setor === sectorName);
@@ -71,14 +170,10 @@ class EquipamentoServiceClass extends BaseService {
         return data.filter(e => e.tipo === 'impressora' && String(e.connectedTo) === String(parentId));
     }
 
-    // --- HISTÓRICO DE ERROS ---
+    // HISTÓRICO DE ERROS 
     async getErrorHistory(equipId) {
-        // Se for API Real, chamaria algo como /api/equipments/{id}/errors
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.http.get(`${this.endpoint}/${equipId}/errors`); 
-            // Nota: Acessei this.http.http porque o wrapper BaseService encapsula o HttpClient
-            // Mas idealmente o HttpClient teria um método request genérico.
-            // Para simplificar aqui, vamos assumir que o MockDatabase lida com isso.
+            return []; 
         }
 
         const allErrors = await MockDatabase.get('log_erros');
@@ -89,7 +184,7 @@ class EquipamentoServiceClass extends BaseService {
         ).sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
     }
 
-    // --- VERIFICAÇÕES DE INTEGRIDADE ---
+    // VERIFICAÇÕES DE INTEGRIDADE
     async checkDependencies(id) {
         const childPrinters = await this.getPrintersByParentId(id);
         
@@ -100,7 +195,6 @@ class EquipamentoServiceClass extends BaseService {
             };
         }
 
-        // Import dinâmico para evitar dependência circular
         const { OsService } = await import('./os.service.js');
         const allOs = await OsService.getAll();
         

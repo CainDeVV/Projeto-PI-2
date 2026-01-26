@@ -1,19 +1,43 @@
 /* js/services/setor.service.js */
 import { BaseService } from '../core/BaseService.js';
 import { MockDatabase } from '../core/MockDatabase.js'; 
-import { APP_CONFIG } from '../config/constants.js'; // Importante para checar o modo
+import { APP_CONFIG } from '../config/constants.js';
 
 class SetorServiceClass extends BaseService {
-    constructor() { super('sectors', 'Setor'); }
+    constructor() { super('setores', 'Setor'); }
 
     // --- LEITURA (JOIN) ---
     async getAll() {
-        // SE FOR API REAL: Retorna direto (Backend deve entregar o DTO hidratado)
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+            try {
+                const response = await fetch('http://localhost:8080/setores', {
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': 'Bearer token-falso-para-aprovacao' 
+                    }
+                });
+
+                if (!response.ok) throw new Error(`Erro API: ${response.status}`);
+                
+                const data = await response.json();
+                
+                return data.map(sec => ({
+                    ...sec,
+                    nome: sec.nome,
+                    localizacao: sec.localizacao || '-',
+                    observacao: sec.observacao || '-',
+                    // Resolve o objeto aninhado 'empresa' se vier do Java
+                    empresa: sec.empresa ? (sec.empresa.nome || sec.empresa) : 'N/A',
+                    cidade: 'N/A'
+                }));
+            } catch (error) {
+                console.error("ERRO CRÍTICO AO BUSCAR SETORES:", error);
+                // Não retorna vazio direto para você ver o erro no console se precisar
+                return [];
+            }
         }
 
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
+        // LÓGICA DO MOCK 
         const sectors = await MockDatabase.get('sectors');
         const companies = await MockDatabase.get('companies');
         const cities = await MockDatabase.get('cities');
@@ -26,16 +50,13 @@ class SetorServiceClass extends BaseService {
                 ...sec,
                 nome_empresa: comp ? comp.nome : 'N/A',
                 nome_cidade: city ? city.nome : 'N/A',
-                // Compatibilidade com componentes que esperam 'empresa' e 'cidade' como nomes
                 empresa: comp ? comp.nome : 'N/A',
                 cidade: city ? city.nome : 'N/A'
             };
         });
     }
 
-    // --- HELPERS E DROPDOWNS ---
-    // (Estes métodos auxiliares continuam lendo do Mock por enquanto, 
-    // pois não temos Services dedicados para Cidades/Empresas ainda)
+    // HELPERS E DROPDOWNS 
     
     async getCitiesForDropdown() { return await MockDatabase.get('cities'); }
 
@@ -66,17 +87,28 @@ class SetorServiceClass extends BaseService {
         });
     }
 
-    // --- ESCRITA (IDS) ---
+    // ESCRITA (IDS)
 
     async add(data) {
-        // Prepara o payload correto para o Backend/Mock
         const payload = {
             nome: data.nome,
             localizacao: data.localizacao,
             observacao: data.observacao,
             id_empresa: data.empresa // Mapeia o select 'empresa' para 'id_empresa'
         };
-        // Usa o save do BaseService para abstrair a chamada
+
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const response = await fetch('http://localhost:8080/setores', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': 'Bearer token-falso-para-aprovacao' 
+                },
+                body: JSON.stringify(payload)
+            });
+            return await response.json();
+        }
+
         return await this.save(payload);
     }
 
@@ -87,18 +119,35 @@ class SetorServiceClass extends BaseService {
             observacao: data.observacao,
             id_empresa: data.empresa
         };
-        // Usa o save do BaseService (com ID, ele entende que é PUT)
+
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const response = await fetch(`http://localhost:8080/setores/${id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': 'Bearer token-falso-para-aprovacao' 
+                },
+                body: JSON.stringify(payload)
+            });
+            return await response.json();
+        }
+
         return await this.save({ ...payload, id });
     }
 
-    // --- DELETES ---
+    //  DELETES
     async delete(id) { 
-        // Usa o delete do BaseService (que trata API ou Mock)
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            await fetch(`http://localhost:8080/setores/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer token-falso-para-aprovacao' }
+            });
+            return;
+        }
         return await super.delete(id); 
     }
 
-    // --- MÉTODOS AUXILIARES DE GERENCIAMENTO (MANTIDOS NO MOCK POR ENQUANTO) ---
-    // Em um cenário real completo, teríamos CityService e CompanyService.
+    // MÉTODOS AUXILIARES DE GERENCIAMENTO 
     
     async addCity(data) {
         return await MockDatabase.post('cities', { 
@@ -127,7 +176,6 @@ class SetorServiceClass extends BaseService {
     
     async deleteCity(id) {
         await MockDatabase.delete('cities', id);
-        // Em um backend real, o CASCADE do banco faria isso. No Mock fazemos manual.
         const companies = await MockDatabase.get('companies');
         const toDelete = companies.filter(c => String(c.id_cidade) === String(id));
         for (const c of toDelete) await this.deleteCompany(c.id);
@@ -140,13 +188,11 @@ class SetorServiceClass extends BaseService {
         for (const s of toDelete) await MockDatabase.delete('sectors', s.id);
     }
 
-    // --- ÁRVORE (SIDEBAR) ---
+    //  ÁRVORE 
     async getTreeStructure() {
-        // Nota: Idealmente o backend teria um endpoint /tree structure
-        // Por enquanto, montamos manualmente com os dados disponíveis
         const cities = await MockDatabase.get('cities');
         const companies = await MockDatabase.get('companies');
-        const sectors = await this.getAll(); // Usa o getAll (que pode vir da API)
+        const sectors = await this.getAll(); 
 
         const tree = [];
         cities.forEach(city => tree.push({ name: city.nome, children: [] }));
@@ -160,9 +206,9 @@ class SetorServiceClass extends BaseService {
         });
 
         sectors.forEach(sec => {
-            const cityNode = tree.find(n => n.name === sec.cidade);
+            const cityNode = tree.find(n => n.name === sec.cidade || n.name === sec.nome_cidade);
             if (cityNode) {
-                const compNode = cityNode.children.find(n => n.name === sec.empresa);
+                const compNode = cityNode.children.find(n => n.name === sec.empresa || n.name === sec.nome_empresa);
                 if (compNode) compNode.children.push(sec.nome);
             }
         });
