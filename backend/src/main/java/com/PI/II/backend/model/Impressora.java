@@ -25,11 +25,10 @@ public class Impressora {
     @Column(length = 50)
     private String contador;
 
-
     @Column(length = 20)
     private String status = "Online"; 
 
-    // Relacionamentos 
+    // --- RELACIONAMENTOS ---
 
     @ManyToOne
     @JoinColumn(name = "id_setor", nullable = false)
@@ -39,77 +38,39 @@ public class Impressora {
     @JoinColumn(name = "id_usuario") 
     private Usuario usuario;
 
-    // getters e setters
+    @ManyToOne
+    @JoinColumn(name = "id_computador_pai") 
+    private Computador computador; 
 
-    public Long getId() {
-        return id;
-    }
+    // --- GETTERS E SETTERS ---
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public String getModelo() {
-        return modelo;
-    }
+    public String getModelo() { return modelo; }
+    public void setModelo(String modelo) { this.modelo = modelo; }
 
-    public void setModelo(String modelo) {
-        this.modelo = modelo;
-    }
+    public String getNumeroSerie() { return numeroSerie; }
+    public void setNumeroSerie(String numeroSerie) { this.numeroSerie = numeroSerie; }
 
-    public String getNumeroSerie() {
-        return numeroSerie;
-    }
+    public String getSala() { return sala; }
+    public void setSala(String sala) { this.sala = sala; }
 
-    public void setNumeroSerie(String numeroSerie) {
-        this.numeroSerie = numeroSerie;
-    }
+    public String getTonel() { return tonel; }
+    public void setTonel(String tonel) { this.tonel = tonel; }
 
-    public String getSala() {
-        return sala;
-    }
+    public String getContador() { return contador; }
+    public void setContador(String contador) { this.contador = contador; }
 
-    public void setSala(String sala) {
-        this.sala = sala;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public String getTonel() {
-        return tonel;
-    }
+    public Setor getSetor() { return setor; }
+    public void setSetor(Setor setor) { this.setor = setor; }
 
-    public void setTonel(String tonel) {
-        this.tonel = tonel;
-    }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 
-    public String getContador() {
-        return contador;
-    }
-
-    public void setContador(String contador) {
-        this.contador = contador;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Setor getSetor() {
-        return setor;
-    }
-
-    public void setSetor(Setor setor) {
-        this.setor = setor;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
+    public Computador getComputador() { return computador; }
+    public void setComputador(Computador computador) { this.computador = computador; }
 }

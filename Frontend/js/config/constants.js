@@ -1,8 +1,10 @@
+/* js/config/constants.js */
 export const APP_CONFIG = {
-    API_BASE_URL: 'http://localhost:8080/usuarios', 
+    API_BASE_URL: 'http://localhost:8080', 
+    
     USE_MOCK_DATA: false,
-    // 1. Coloque a URL do Backend
-    // 2. True usa o MockService, false usa o Backend
+    // false = Usa o Backend Java
+    // true = Usa dados falsos (teste)
 };
 
 export const STORAGE_KEYS = {

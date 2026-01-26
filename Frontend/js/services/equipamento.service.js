@@ -1,216 +1,200 @@
 /* js/services/equipamento.service.js */
 import { BaseService } from '../core/BaseService.js';
-import { MockDatabase } from '../core/MockDatabase.js';
 import { APP_CONFIG } from '../config/constants.js'; 
 
 class EquipamentoServiceClass extends BaseService {
     constructor() {
         super('equipments', 'Equipamento'); 
+        this.apiPc = 'http://localhost:8080/computadores';
+        this.apiImp = 'http://localhost:8080/impressoras';
     }
 
-    // LEITURA 
+    // --- LEITURA (GET) ---
     async getAll() {
-        // --- SE FOR API REAL ---
         if (!APP_CONFIG.USE_MOCK_DATA) {
             try {
-                console.log(">>> TENTANDO BUSCAR EQUIPAMENTOS NA API (VIA FETCH)...");
-
-                // Configuração manual para garantir que o token vá corretamente
-                const headers = { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                };
-
-                // 1. Busca Computadores e Impressoras (USANDO FETCH DIRETO para evitar erro de undefined)
-                const [pcRes, impRes] = await Promise.all([
-                    fetch('http://localhost:8080/computadores', { headers }),
-                    fetch('http://localhost:8080/impressoras', { headers })
+                const [pcs, imps] = await Promise.all([
+                    this.fetchJson(this.apiPc),
+                    this.fetchJson(this.apiImp)
                 ]);
-
-                // Verifica se deu erro na requisição
-                if (!pcRes.ok) throw new Error(`Erro ao buscar PCs: ${pcRes.status}`);
-                if (!impRes.ok) throw new Error(`Erro ao buscar Impressoras: ${impRes.status}`);
-
-                // Converte a resposta para JSON
-                const computadores = await pcRes.json();
-                const impressoras = await impRes.json();
-
-                console.log(">>> SUCESSO! PCs:", computadores.length, "Imps:", impressoras.length);
-
-                // 2. Normaliza PCs
-                const pcs = computadores.map(pc => ({
-                    ...pc,
-                    tipo: 'computador',
-                    setor: pc.setor ? (pc.setor.nome || pc.setor) : '-',
-                    usuario: pc.usuario ? (pc.usuario.nome || pc.usuario) : '-',
-                    status: pc.status || 'Offline',
-                    modelo: pc.modelo,
-                    numeroSerie: pc.numeroSerie || pc.numero_serie
-                }));
-
-                // 3. Normaliza Impressoras
-                const imps = impressoras.map(imp => ({
-                    ...imp,
-                    tipo: 'impressora',
-                    setor: imp.setor ? (imp.setor.nome || imp.setor) : '-',
-                    usuario: '-',
-                    tonel: imp.tonel || '0%',
-                    contador: imp.contador || '0',
-                    status: imp.status || 'Offline',
-                    modelo: imp.modelo,
-                    numeroSerie: imp.numeroSerie || imp.numero_serie
-                }));
-
-                return [...pcs, ...imps].sort((a, b) => {
-                    if (a.tipo === b.tipo) return 0;
-                    return a.tipo === 'computador' ? -1 : 1;
-                });
-
+                const pcsTyped = pcs.map(p => this._normalize(p, 'computador'));
+                const impsTyped = imps.map(i => this._normalize(i, 'impressora'));
+                return [...pcsTyped, ...impsTyped];
             } catch (error) {
-                console.error("ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
-                
-                if (error.message && error.message.includes('fetch')) {
-                     alert(`Erro de Conexão: O Backend está rodando na porta 8080?`);
-                } else {
-                     alert(`Erro ao carregar equipamentos: ${error.message}`);
-                }
-                
+                console.error("Erro busca:", error);
                 return [];
             }
         }
-
-        // LÓGICA DO MOCK 
-        const equips = await MockDatabase.get('equipments');
-        const sectors = await MockDatabase.get('sectors');
-        const users = await MockDatabase.get('users');
-
-        const hydratedData = equips.map(eq => {
-            const sec = sectors.find(s => String(s.id) === String(eq.id_setor));
-            
-            let userName = eq.usuario || '-'; 
-            if (eq.id_usuario) {
-                const u = users.find(user => String(user.id) === String(eq.id_usuario));
-                if (u) userName = u.nome;
-            }
-
-            return {
-                ...eq,
-                setor: sec ? sec.nome : 'N/A',
-                usuario: userName,
-                id_setor: eq.id_setor,
-                id_usuario: eq.id_usuario
-            };
-        });
-
-        return hydratedData.sort((a, b) => {
-            if (a.tipo === b.tipo) return 0;
-            return a.tipo === 'computador' ? -1 : 1;
-        });
+        return []; 
     }
 
-    // ESCRITA 
+    async getById(id) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            try {
+                const pc = await this.fetchJson(`${this.apiPc}/${id}`);
+                return this._normalize(pc, 'computador');
+            } catch (e) {
+                try {
+                    const imp = await this.fetchJson(`${this.apiImp}/${id}`);
+                    return this._normalize(imp, 'impressora');
+                } catch (e2) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    // --- SALVAR (ROTEADOR) ---
+    async save(data) {
+        if (data.id) {
+            return this.update(data.id, data);
+        } else {
+            return this.add(data);
+        }
+    }
+
+    // --- CRIAR (POST) ---
     async add(data) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            const endpoint = data.tipo === 'computador' ? 'computadores' : 'impressoras';
+            const url = data.tipo === 'impressora' ? this.apiImp : this.apiPc;
             
-            const response = await fetch(`http://localhost:8080/${endpoint}`, {
+            // LIMPEZA FINAL: Garante que o JSON está perfeito para o Java
+            const payload = this._cleanPayload(data);
+
+            console.log(">>> Enviando POST para:", url, payload);
+
+            return this.fetchJson(url, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
-            return await response.json();
         }
-        return await this.save(data); 
+        return {};
     }
 
+    // --- ATUALIZAR (PUT) ---
     async update(id, data) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            const endpoint = data.tipo === 'computador' ? `computadores/${id}` : `impressoras/${id}`;
+            const url = data.tipo === 'impressora' ? `${this.apiImp}/${id}` : `${this.apiPc}/${id}`;
             
-            const response = await fetch(`http://localhost:8080/${endpoint}`, {
+            // LIMPEZA FINAL: Garante que o JSON está perfeito para o Java
+            const payload = this._cleanPayload(data);
+            
+            // Garante ID numérico no corpo
+            payload.id = parseInt(id, 10);
+
+            console.log(">>> Enviando PUT para:", url, payload);
+
+            return this.fetchJson(url, {
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer token-falso-para-aprovacao'
-                },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
-            return await response.json();
         }
-        return await this.save({ ...data, id });
+        return {};
     }
 
+    // --- EXCLUIR (DELETE) ---
     async delete(id) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            const headers = { 'Authorization': 'Bearer token-falso-para-aprovacao' };
-            try {
-                // Tenta apagar como computador
-                const res = await fetch(`http://localhost:8080/computadores/${id}`, { method: 'DELETE', headers });
-                if (!res.ok) throw new Error('Not PC');
-            } catch (e) {
-                // Se falhar, tenta como impressora
-                await fetch(`http://localhost:8080/impressoras/${id}`, { method: 'DELETE', headers });
+            let endpoint = `${this.apiPc}/${id}`;
+            let response = await fetch(endpoint, { method: 'DELETE', headers: this.getHeaders() });
+
+            if (response.status === 404) {
+                endpoint = `${this.apiImp}/${id}`;
+                response = await fetch(endpoint, { method: 'DELETE', headers: this.getHeaders() });
             }
-            return;
+
+            if (!response.ok) {
+                const errorText = await response.text(); 
+                throw new Error(errorText || 'Erro ao excluir.');
+            }
+            return true;
         }
-        return await super.delete(id);
+        return true;
     }
 
-    // FILTROS (MANTIDOS IGUAIS)
-    async getBySector(sectorName) {
-        const data = await this.getAll();
-        return data.filter(e => e.setor === sectorName);
+    // --- FUNÇÃO DE LIMPEZA (O SEGREDO PARA CORRIGIR O ERRO 400) ---
+    _cleanPayload(data) {
+        const clean = { ...data };
+        
+        // 1. Remove campo 'tipo' (O Java não tem esse campo)
+        delete clean.tipo; 
+        
+        // 2. Converte ID principal para inteiro
+        if (clean.id) clean.id = parseInt(clean.id, 10);
+        
+        // 3. CORREÇÃO DO SETOR:
+        // Se 'setor' for uma string/número (veio do form como "1"), converte para objeto { id: 1 }
+        if (clean.setor && (typeof clean.setor === 'string' || typeof clean.setor === 'number')) {
+            clean.setor = { id: parseInt(clean.setor, 10) };
+        }
+        // Se 'setor' já for objeto mas tiver campos extras, reduz para { id: X }
+        else if (clean.setor && clean.setor.id) {
+            clean.setor = { id: parseInt(clean.setor.id, 10) };
+        }
+
+        // 4. CORREÇÃO DO USUÁRIO:
+        // Se 'usuario' for string vazia ou "0", remove o campo (null)
+        if (clean.usuario === "" || clean.usuario === "0" || clean.usuario === 0) {
+            clean.usuario = null;
+        }
+        // Se for string/número válido (ex: "2"), converte para objeto { id: 2 }
+        else if (clean.usuario && (typeof clean.usuario === 'string' || typeof clean.usuario === 'number')) {
+            clean.usuario = { id: parseInt(clean.usuario, 10) };
+        }
+        // Se já for objeto, reduz para { id: X }
+        else if (clean.usuario && clean.usuario.id) {
+            clean.usuario = { id: parseInt(clean.usuario.id, 10) };
+        } else {
+            // Se for objeto vazio ou inválido, manda null
+            clean.usuario = null;
+        }
+
+        return clean;
     }
 
-    async getPrintersByParentId(parentId) {
-        const data = await this.getAll();
-        return data.filter(e => e.tipo === 'impressora' && String(e.connectedTo) === String(parentId));
-    }
-
-    // HISTÓRICO DE ERROS 
-    async getErrorHistory(equipId) {
+    async getPrintersByParentId(computadorId) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return []; 
+            try {
+                const imps = await this.fetchJson(`${this.apiImp}?computadorId=${computadorId}`);
+                return imps.map(i => this._normalize(i, 'impressora'));
+            } catch (error) { return []; }
         }
-
-        const allErrors = await MockDatabase.get('log_erros');
-        
-        return allErrors.filter(err => 
-            String(err.id_computador) === String(equipId) || 
-            String(err.id_impressora) === String(equipId)
-        ).sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+        return [];
     }
 
-    // VERIFICAÇÕES DE INTEGRIDADE
-    async checkDependencies(id) {
-        const childPrinters = await this.getPrintersByParentId(id);
-        
-        if (childPrinters.length > 0) {
-            return {
-                allowed: false,
-                message: `Possui ${childPrinters.length} impressora(s) conectada(s).`
-            };
+    async getErrorHistory(id) { return []; }
+
+    _normalize(item, tipo) {
+        return {
+            ...item,
+            tipo: tipo,
+            setor: item.setor ? (item.setor.nome || 'Setor ' + item.setor.id) : '-',
+            usuario: item.usuario ? item.usuario.nome : '-',
+            id_setor: item.setor ? item.setor.id : null,
+            id_usuario: item.usuario ? item.usuario.id : null
+        };
+    }
+
+    async fetchJson(url, options = {}) {
+        const res = await fetch(url, {
+            ...options,
+            headers: { ...this.getHeaders(), ...options.headers }
+        });
+        if (!res.ok) {
+            if (res.status === 404) throw new Error('Not Found');
+            const text = await res.text();
+            throw new Error(text || `Erro API: ${res.status}`);
         }
+        return res.json();
+    }
 
-        const { OsService } = await import('./os.service.js');
-        const allOs = await OsService.getAll();
-        
-        const hasOpenOs = allOs.some(os => 
-            (String(os.id_computador) === String(id) || String(os.id_impressora) === String(id)) 
-            && os.status === 'Aberto'
-        );
-
-        if (hasOpenOs) {
-            return {
-                allowed: false,
-                message: 'Existe O.S. ABERTA para este equipamento.'
-            };
-        }
-
-        return { allowed: true };
+    getHeaders() {
+        const token = localStorage.getItem('sys_token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
     }
 }
 

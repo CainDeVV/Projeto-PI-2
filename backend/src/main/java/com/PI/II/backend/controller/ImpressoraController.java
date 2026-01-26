@@ -14,22 +14,27 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/impressoras")
-@CrossOrigin(origins = "*") // Importante para o Front não bloquear
+@CrossOrigin(origins = "*") 
 public class ImpressoraController {
 
     @Autowired
     private ImpressoraRepository impressoraRepo;
 
-    // --- NOVAS DEPENDÊNCIAS PARA A AUTOMAÇÃO ---
     @Autowired private OrdemServicoRepository osRepo;
     @Autowired private UsuarioRepository usuarioRepo;
 
-    // LISTAR (Seu código original mantido)
+    // --- LISTAR  ---
     @GetMapping
     public List<Impressora> listar(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String modelo
+            @RequestParam(required = false) String modelo,
+            @RequestParam(required = false) Long computadorId // Filtro PC
     ) {
+        if (computadorId != null) {
+            return impressoraRepo.findByComputadorId(computadorId);
+        }
+
+        // 2. Filtros de Status e Modelo
         if (status != null && modelo != null) {
             return impressoraRepo.findByStatusAndModelo(status, modelo);
         } else if (status != null) {
@@ -37,50 +42,57 @@ public class ImpressoraController {
         } else if (modelo != null) {
             return impressoraRepo.findByModelo(modelo);
         }
+        
+        // 3. Padrão: Retorna tudo
         return impressoraRepo.findAll();
     }
 
-    // CADASTRAR (Seu código original mantido)
+    // CADASTRAR
     @PostMapping
     public ResponseEntity<?> salvar(@RequestBody Impressora imp) {
         if (impressoraRepo.existsByNumeroSerie(imp.getNumeroSerie())) {
             return ResponseEntity.badRequest().body("Erro: Já existe impressora com este Número de Série!");
         }
 
-        if (imp.getStatus() == null || imp.getStatus().isEmpty()) {
-            imp.setStatus("Online");
-        }
-        if (imp.getTonel() == null || imp.getTonel().isEmpty()) {
-            imp.setTonel("100%"); // Começa cheia
-        }
-        if (imp.getContador() == null || imp.getContador().isEmpty()) {
-            imp.setContador("0"); // Começa zerada
+        // Defaults
+        if (imp.getStatus() == null || imp.getStatus().isEmpty()) imp.setStatus("Online");
+        if (imp.getTonel() == null || imp.getTonel().isEmpty()) imp.setTonel("100%");
+        if (imp.getContador() == null || imp.getContador().isEmpty()) imp.setContador("0");
+        
+        // Validação de Setor
+        if (imp.getSetor() == null) {
+             return ResponseEntity.badRequest().body("Erro: É obrigatório selecionar um Setor.");
         }
 
         Impressora novaImp = impressoraRepo.save(imp);
         return ResponseEntity.ok(novaImp);
     }
 
-    // --- NOVO MÉTODO: ATUALIZAR (ESSENCIAL PARA O SIMULADOR) ---
+    // ATUALIZAR 
     @PutMapping("/{id}")
-    public ResponseEntity<Impressora> atualizar(@PathVariable Long id, @RequestBody Impressora dados) {
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Impressora dados) {
         return impressoraRepo.findById(id).map(imp -> {
             
-            // Atualiza apenas o que veio no JSON
+            // Atualiza campos
             if(dados.getStatus() != null) imp.setStatus(dados.getStatus());
             if(dados.getTonel() != null) imp.setTonel(dados.getTonel());
             if(dados.getContador() != null) imp.setContador(dados.getContador());
+            if(dados.getModelo() != null) imp.setModelo(dados.getModelo());
+            if(dados.getSala() != null) imp.setSala(dados.getSala());
+            if(dados.getSetor() != null) imp.setSetor(dados.getSetor());
+            if(dados.getNumeroSerie() != null) imp.setNumeroSerie(dados.getNumeroSerie()); // Adicionei caso queira corrigir série errada
             
-            // --- AQUI ENTRA A INTELIGÊNCIA ARTIFICIAL (AUTOMATIZAÇÃO) ---
+            imp.setComputador(dados.getComputador());
+
+            // AUTOMAÇÃO
             verificarSaudeDoEquipamento(imp);
-            // -------------------------------------------------------------
 
             Impressora atualizada = impressoraRepo.save(imp);
             return ResponseEntity.ok(atualizada);
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // BUSCAR POR ID (Seu código original mantido)
+    // BUSCAR POR ID
     @GetMapping("/{id}")
     public ResponseEntity<Impressora> buscarPorId(@PathVariable Long id) {
         return impressoraRepo.findById(id)
@@ -88,61 +100,54 @@ public class ImpressoraController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // EXCLUIR (Seu código original mantido)
+    // EXCLUIR 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> excluir(@PathVariable Long id) {
-        if (!impressoraRepo.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        impressoraRepo.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return impressoraRepo.findById(id).map(imp -> {
+            
+            // VERIFICAÇÃO DE SEGURANÇA
+            boolean temOsAberta = osRepo.existsByImpressoraAndStatus(imp, "Aberto");
+            if (temOsAberta) {
+                 return ResponseEntity.badRequest().body("Erro: Não é possível excluir impressora com O.S. Aberta!");
+            }
+
+            impressoraRepo.delete(imp);
+            return ResponseEntity.noContent().build();
+        }).orElse(ResponseEntity.notFound().build());
     }
+
+    //MÉTODOS PRIVADOS
 
     private void verificarSaudeDoEquipamento(Impressora imp) {
         try {
-            // 1. Verificar Nível de Tinta (Remove o % para virar número)
             String tintaStr = imp.getTonel().replace("%", "").trim();
             int nivelTinta = Integer.parseInt(tintaStr);
 
-            // Regra: Se tinta < 10%, abre chamado urgente
             if (nivelTinta < 10) {
-                abrirOsAutomatica(imp, "Tinta Crítica", "Nível de toner abaixo de 10%. Solicitar compra.", "Alta");
+                abrirOsAutomatica(imp, "Tinta Crítica", "Nível de toner abaixo de 10%.", "Alta");
             }
 
-            // 2. Verificar Status de Erro (Se não for Online nem Manutenção)
-            if (!imp.getStatus().equalsIgnoreCase("Online") && 
-                !imp.getStatus().equalsIgnoreCase("Manutenção")) {
-                
-                abrirOsAutomatica(imp, "Erro de Hardware", "Impressora reportou status de erro: " + imp.getStatus(), "Alta");
+            if (!imp.getStatus().equalsIgnoreCase("Online") && !imp.getStatus().equalsIgnoreCase("Manutenção")) {
+                abrirOsAutomatica(imp, "Erro de Hardware", "Status reportado: " + imp.getStatus(), "Alta");
             }
-
-        } catch (NumberFormatException e) {
-            // Ignora se a tinta não for numero válido
+        } catch (Exception e) { 
+            // Ignora erro de parse
         }
     }
 
     private void abrirOsAutomatica(Impressora imp, String titulo, String descricao, String prioridade) {
-        // Verifica se já existe chamado ABERTO para não criar duplicado (Anti-Spam)
-        if (osRepo.existsByImpressoraAndStatus(imp, "Aberto")) {
-            return; 
-        }
-
-        System.out.println("[AUTO-OS] Abrindo chamado automático para: " + imp.getModelo());
+        if (osRepo.existsByImpressoraAndStatus(imp, "Aberto")) return;
 
         OrdemServico os = new OrdemServico();
         os.setTitulo("[AUTO] " + titulo);
         os.setDescricaoProblema(descricao);
         os.setPrioridade(prioridade);
-        os.setStatus("Aberto");
-        
-        // Relacionamentos
         os.setImpressora(imp);
         os.setSetor(imp.getSetor());
-
+        os.setStatus("Aberto"); // Garante status inicial
+        
         List<Usuario> admins = usuarioRepo.findAll();
-        if (!admins.isEmpty()) {
-            os.setSolicitante(admins.get(0)); 
-        }
+        if (!admins.isEmpty()) os.setSolicitante(admins.get(0));
 
         osRepo.save(os);
     }

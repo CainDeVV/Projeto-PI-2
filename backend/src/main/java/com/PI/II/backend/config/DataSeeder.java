@@ -50,6 +50,7 @@ public class DataSeeder {
                 setorRH.setEmpresa(empresaSalva);
                 setorRepo.saveAll(List.of(setorTI, setorRH));
             }
+            // Recarrega setores do banco para garantir que tenham IDs
             List<Setor> setoresSalvos = setorRepo.findAll();
             Setor setorTISalvo = setoresSalvos.get(0); 
             Setor setorRHSalvo = setoresSalvos.size() > 1 ? setoresSalvos.get(1) : setoresSalvos.get(0);
@@ -88,19 +89,28 @@ public class DataSeeder {
             if (usuarioRepo.findByCpf(admin.getCpf()).isEmpty()) usuarioRepo.save(admin);
             if (usuarioRepo.findByCpf(tecnico.getCpf()).isEmpty()) usuarioRepo.save(tecnico);
 
-            // Recarrega do banco para garantir que temos os IDs
             Usuario adminSalvo = usuarioRepo.findByCpf(admin.getCpf()).get();
 
             // 6. IMPRESSORAS 
             System.out.println("[DataSeeder] Criando impressoras...");
+            
+            // Tenta pegar o PC-01 para vincular a impressora (Teste do novo recurso)
+            Computador pc01 = computadorRepo.findAll().stream()
+                .filter(pc -> pc.getNumeroSerie().equals("DELL-PC-1"))
+                .findFirst()
+                .orElse(null);
+
             Impressora imp1 = new Impressora();
             imp1.setModelo("HP LaserJet 1020"); 
-            imp1.setNumeroSerie("HP-LaserJet-1020"); // IDÊNTICO AO SIMULADOR
+            imp1.setNumeroSerie("HP-LaserJet-1020"); 
             imp1.setSala("Sala TI");
             imp1.setTonel("80%"); 
             imp1.setContador("1500");
             imp1.setStatus("Online");
             imp1.setSetor(setorTISalvo);
+            if (pc01 != null) {
+                imp1.setComputador(pc01); // VINCULA AO COMPUTADOR
+            }
 
             Impressora imp2 = new Impressora();
             imp2.setModelo("Epson EcoTank");
@@ -110,11 +120,11 @@ public class DataSeeder {
             imp2.setContador("5000");
             imp2.setStatus("Offline"); 
             imp2.setSetor(setorRHSalvo);
+            // imp2 sem computador (impressora de rede ou Wi-Fi)
 
             if (!impressoraRepo.existsByNumeroSerie(imp1.getNumeroSerie())) impressoraRepo.save(imp1);
             if (!impressoraRepo.existsByNumeroSerie(imp2.getNumeroSerie())) impressoraRepo.save(imp2);
             
-            // Recarrega para garantir ID
             Impressora impSalva = impressoraRepo.findAll().stream()
                 .filter(i -> i.getNumeroSerie().equals("HP-LaserJet-1020"))
                 .findFirst()
@@ -129,13 +139,11 @@ public class DataSeeder {
                 os.setPrioridade("Alta");
                 os.setStatus("Aberto");
                 
-                // Relacionamentos Obrigatórios
                 os.setSolicitante(adminSalvo); 
                 os.setImpressora(impSalva);    
                 os.setSetor(impSalva.getSetor());
                 
                 osRepo.save(os);
-                
             }
 
             // VERIFICAÇÃO FINAL

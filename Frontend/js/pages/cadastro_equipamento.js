@@ -66,32 +66,27 @@ class CadastroEquipamentoPage extends BaseFormPage {
             label: `${u.nome} (CPF: ${u.cpf})`
         }));
 
-        // Criação dos Campos Comuns
+        // Criação dos Campos
         const fieldUsuario = this.createSelectField('Usuário Responsável', 'usuario', opcoesUsuario, '-- Sem vínculo (Livre) --', true);
         const fieldSetor = this.createSelectField('Setor', 'setor', opcoesSetor, '-- Selecione o Setor --');
         
-        // --- CAMPO SALA (Antigo Nome/Identificação) ---
         const fieldSala = this.createTextField('Sala / Localização', 'sala', 'Ex: Sala 104, Recepção');
 
         const fields = [];
         
+        // CORREÇÃO: O nome do campo deve ser 'numeroSerie' para bater com o Java
         if (type === 'computador') {
-            fields.push(this.createTextField('Nº Série', 'serie', 'Ex: NPX-000', 'serial'));
+            fields.push(this.createTextField('Nome do PC', 'nome', 'Ex: PC-01 (Opcional)', null, true));
+            fields.push(this.createTextField('Nº Série', 'numeroSerie', 'Ex: NPX-000', 'serial'));
             fields.push(this.createTextField('Modelo', 'modelo', 'Ex: Dell Optiplex 3050'));
-            
-            // Adiciona Sala
             fields.push(fieldSala);
-            
             fields.push(fieldUsuario); 
             fields.push(fieldSetor);
         } else {
             // IMPRESSORA
-            fields.push(this.createTextField('Nº Série', 'serie', 'Ex: HP-999', 'serial'));
+            fields.push(this.createTextField('Nº Série', 'numeroSerie', 'Ex: HP-999', 'serial'));
             fields.push(this.createTextField('Modelo', 'modelo', 'Ex: HP Laserjet Pro'));
-            
-            // Adiciona Sala
             fields.push(fieldSala);
-            
             fields.push(fieldUsuario); 
             fields.push(fieldSetor);
         }
@@ -100,30 +95,26 @@ class CadastroEquipamentoPage extends BaseFormPage {
         setupInputMasks();
     }
 
-    // --- CAPTURA DE DADOS ---
+    // --- CORREÇÃO DO PAYLOAD (JSON) ---
     getExtraData() {
         const setorInput = this.dynamicContainer.querySelector('[name="setor"]');
         const usuarioInput = this.dynamicContainer.querySelector('[name="usuario"]');
-        const salaInput = this.dynamicContainer.querySelector('[name="sala"]');
         
-        let usuarioValor = '';
-        let usuarioId = null;
+        const dados = {
+            tipo: this.typeSelect ? this.typeSelect.value : 'computador'
+        };
 
-        if (usuarioInput && usuarioInput.selectedIndex > 0) {
-            usuarioId = usuarioInput.value;
-            usuarioValor = usuarioInput.options[usuarioInput.selectedIndex].text;
-            if(usuarioValor.includes(' (CPF:')) usuarioValor = usuarioValor.split(' (CPF:')[0];
+        // O Java espera objetos aninhados com ID numérico: setor: { id: 1 }
+        if (setorInput && setorInput.value) {
+            dados.setor = { id: parseInt(setorInput.value, 10) };
         }
 
-        return {
-            tipo: this.typeSelect ? this.typeSelect.value : null,
-            id_setor: setorInput ? setorInput.value : null,
-            id_usuario: usuarioId,
-            usuario: usuarioValor,
-            
-            // Salva apenas Sala
-            sala: salaInput ? salaInput.value : ''
-        };
+        // O Java espera: usuario: { id: 1 }
+        if (usuarioInput && usuarioInput.value) {
+            dados.usuario = { id: parseInt(usuarioInput.value, 10) };
+        }
+
+        return dados;
     }
 
     validate() {
@@ -141,7 +132,11 @@ class CadastroEquipamentoPage extends BaseFormPage {
     // --- PREENCHIMENTO NA EDIÇÃO ---
     afterFillForm(data) {
         if (this.typeSelect) {
-            this.typeSelect.value = data.tipo;
+            // O backend devolve "computador" ou "impressora" no campo tipo? 
+            // Se não, tentamos adivinhar ou mantemos o padrão
+            if (data.tipo) {
+                this.typeSelect.value = data.tipo;
+            }
             this.typeSelect.disabled = true; 
             this.typeSelect.style.backgroundColor = "var(--bg-surface)"; 
             this.typeSelect.style.opacity = "0.7";
@@ -153,39 +148,24 @@ class CadastroEquipamentoPage extends BaseFormPage {
         
         inputs.forEach(input => {
             if (input.name === 'setor') {
-                if (data.id_setor) {
-                    input.value = data.id_setor;
-                    if (!input.value && data.id_setor) {
+                const setorId = data.setor ? data.setor.id : data.id_setor;
+                if (setorId) {
+                    input.value = setorId;
+                    // Fallback visual
+                    if (!input.value && setorId) {
                         const opt = document.createElement('option');
-                        opt.value = data.id_setor;
-                        opt.text = `Setor ID ${data.id_setor} (Arquivado)`;
+                        opt.value = setorId;
+                        opt.text = `Setor ID ${setorId}`;
                         opt.selected = true;
                         input.add(opt);
                     }
                 }
             } 
             else if (input.name === 'usuario') {
-                if (data.id_usuario) {
-                    input.value = data.id_usuario;
-                } else if (data.usuario) {
-                    let found = false;
-                    for (let i = 0; i < input.options.length; i++) {
-                        if (input.options[i].text.includes(data.usuario)) {
-                            input.selectedIndex = i;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        const opt = document.createElement('option');
-                        opt.value = '';
-                        opt.text = `${data.usuario} (Legado)`;
-                        opt.selected = true;
-                        input.add(opt);
-                    }
-                }
+                const userId = data.usuario ? data.usuario.id : data.id_usuario;
+                if (userId) input.value = userId;
             }
-            // Preenche SALA e outros campos
+            // Preenche numeroSerie, modelo, sala, nome
             else if (data[input.name]) {
                 input.value = data[input.name];
             }
@@ -213,13 +193,18 @@ class CadastroEquipamentoPage extends BaseFormPage {
         return DOMUtils.create('div', { className: 'form-group animate-fade' }, [ labelEl, wrapperEl, errorSpan ]);
     }
 
-    createTextField(label, name, placeholder, mask = null) {
+    createTextField(label, name, placeholder, mask = null, isOptional = false) {
         const labelEl = DOMUtils.create('label', {}, label);
-        const inputEl = DOMUtils.create('input', {
+        if(isOptional) labelEl.appendChild(DOMUtils.create('small', { style: {color: '#888', marginLeft: '5px'} }, '(Opcional)'));
+
+        const inputProps = {
             type: 'text', name: name, className: 'custom-input', 
-            placeholder: placeholder, required: 'true',
+            placeholder: placeholder,
             style: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--border-input)', backgroundColor: 'var(--bg-input)', fontSize: '16px', color: 'var(--text-primary)' }
-        });
+        };
+        if (!isOptional) inputProps.required = 'true';
+
+        const inputEl = DOMUtils.create('input', inputProps);
         if (mask) inputEl.dataset.mask = mask;
         const errorSpan = DOMUtils.create('span', { className: 'erro-msg', id: `erro-${name}` });
         return DOMUtils.create('div', { className: 'form-group animate-fade' }, [labelEl, inputEl, errorSpan]);
