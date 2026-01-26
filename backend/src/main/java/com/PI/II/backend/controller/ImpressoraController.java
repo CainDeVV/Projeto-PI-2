@@ -83,6 +83,7 @@ public class ImpressoraController {
             if(dados.getNumeroSerie() != null) imp.setNumeroSerie(dados.getNumeroSerie()); // Adicionei caso queira corrigir série errada
             
             imp.setComputador(dados.getComputador());
+            imp.setUsuario(dados.getUsuario());
 
             // AUTOMAÇÃO
             verificarSaudeDoEquipamento(imp);

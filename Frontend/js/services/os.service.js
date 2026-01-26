@@ -1,13 +1,14 @@
 /* js/services/os.service.js */
 import { BaseService } from '../core/BaseService.js';
 import { AuthService } from './auth.service.js';
+import { APP_CONFIG } from '../config/constants.js'; // Garantir que temos acesso à config se precisar
 
 class OsServiceClass extends BaseService {
     constructor() {
         super('ordens-servico', 'Ordem de Serviço');
     }
 
-    // --- HELPER: Traduz Java -> Frontend ---
+    // Traduz Java -> Frontend ---
     _mapToFrontend(os) {
         const setorNome = os.setor ? os.setor.nome : 'N/A';
         let equipName = 'Genérico';
@@ -60,6 +61,7 @@ class OsServiceClass extends BaseService {
     }
 
     // --- ESCRITA (CRIAÇÃO E ATUALIZAÇÃO) ---
+    // Nota: O Log de CREATE e UPDATE normal acontece automaticamente dentro de super.save()
     async save(data) {
         // Formata para o Java (Objetos Aninhados)
         const payload = {
@@ -82,29 +84,42 @@ class OsServiceClass extends BaseService {
 
         if (data.id_computador) {
             payload.computador = { id: parseInt(data.id_computador) };
+            payload.impressora = null;
         } else if (data.id_impressora) {
             payload.impressora = { id: parseInt(data.id_impressora) };
+            payload.computador = null;
         }
 
-        return await super.save(payload);
+        return await super.save(payload); 
     }
 
     // Helpers
     async add(d) { return this.save(d); }
     async update(id, d) { return this.save({ ...d, id }); }
 
+    // --- AÇÃO ESPECIAL: FECHAR/REABRIR ---
     async toggleStatus(id) {
         const item = await this.getById(id);
         if(!item) return;
         
-        if (item.status === 'Aberto') {
-            const user = AuthService.getUser();
+        const novoStatus = item.status === 'Aberto' ? 'Fechado' : 'Aberto';
+        
+        if (novoStatus === 'Fechado') {
+            const currentUser = AuthService.getUser();
+            
+            // Endpoint específico para finalizar
             await fetch(`${this.http.apiBase}/ordens-servico/${id}/finalizar`, {
                 method: 'PUT',
                 headers: this.http._getHeaders(),
-                body: JSON.stringify({ solucao: `Fechado por ${user ? user.nome : 'Sistema'}` })
+                body: JSON.stringify({ 
+                    solucao: `Fechado via Painel por ${currentUser ? currentUser.nome : 'Sistema'}` 
+                })
             });
+
+            this._logAction('UPDATE', `Finalizou a O.S. #${id}`);
+
         } else {
+            // Reabrir usa o save() normal, então o log é automático pelo BaseService
             await this.save({ 
                 id, status: 'Aberto', dataFechamento: null, solucao: null,
                 id_setor: item.id_setor, id_usuario_solicitante: item.id_usuario_solicitante

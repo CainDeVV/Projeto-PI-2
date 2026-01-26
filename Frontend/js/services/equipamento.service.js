@@ -5,8 +5,8 @@ import { APP_CONFIG } from '../config/constants.js';
 class EquipamentoServiceClass extends BaseService {
     constructor() {
         super('equipments', 'Equipamento'); 
-        this.apiPc = 'http://localhost:8080/computadores';
-        this.apiImp = 'http://localhost:8080/impressoras';
+        this.apiPc = `${APP_CONFIG.API_BASE_URL}/computadores`;
+        this.apiImp = `${APP_CONFIG.API_BASE_URL}/impressoras`;
     }
 
     // --- LEITURA (GET) ---
@@ -31,10 +31,12 @@ class EquipamentoServiceClass extends BaseService {
     async getById(id) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
             try {
+                // Tenta buscar como PC
                 const pc = await this.fetchJson(`${this.apiPc}/${id}`);
                 return this._normalize(pc, 'computador');
             } catch (e) {
                 try {
+                    // Se falhar, tenta buscar como Impressora
                     const imp = await this.fetchJson(`${this.apiImp}/${id}`);
                     return this._normalize(imp, 'impressora');
                 } catch (e2) {
@@ -59,7 +61,7 @@ class EquipamentoServiceClass extends BaseService {
         if (!APP_CONFIG.USE_MOCK_DATA) {
             const url = data.tipo === 'impressora' ? this.apiImp : this.apiPc;
             
-            // LIMPEZA FINAL: Garante que o JSON está perfeito para o Java
+            // LIMPEZA FINAL
             const payload = this._cleanPayload(data);
 
             const result = await this.fetchJson(url, {
@@ -67,7 +69,7 @@ class EquipamentoServiceClass extends BaseService {
                 body: JSON.stringify(payload)
             });
 
-            // LOG DA AÇÃO (Integração com Log do Amigo)
+            // LOG DA AÇÃO
             this._logAction('CREATE', `Criou ${data.tipo}: ${data.modelo}`);
             
             return result;
@@ -102,6 +104,7 @@ class EquipamentoServiceClass extends BaseService {
         if (!APP_CONFIG.USE_MOCK_DATA) {
             let endpoint = `${this.apiPc}/${id}`;
             let tipoApagado = 'Computador';
+            
             let response = await fetch(endpoint, { method: 'DELETE', headers: this.getHeaders() });
 
             if (response.status === 404) {
@@ -123,11 +126,17 @@ class EquipamentoServiceClass extends BaseService {
         return true;
     }
 
-    // --- FUNÇÃO DE LIMPEZA (CRUCIAL PARA O ERRO 400) ---
+    // --- FUNÇÃO DE LIMPEZA (JSON FRONT -> BACK) ---
     _cleanPayload(data) {
         const clean = { ...data };
         delete clean.tipo; 
         if (clean.id) clean.id = parseInt(clean.id, 10);
+        
+        // Se vier campo 'serie' (do form), converte para 'numeroSerie' (pro Java)
+        if (clean.serie) {
+            clean.numeroSerie = clean.serie;
+            delete clean.serie;
+        }
         
         if (clean.setor && (typeof clean.setor === 'string' || typeof clean.setor === 'number')) {
             clean.setor = { id: parseInt(clean.setor, 10) };
@@ -148,8 +157,7 @@ class EquipamentoServiceClass extends BaseService {
         return clean;
     }
 
-    // --- MÉTODOS EXTRAS (DO AMIGO) ---
-    
+    // --- MÉTODOS EXTRAS ---
     async getPrintersByParentId(computadorId) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
             try {
@@ -162,14 +170,11 @@ class EquipamentoServiceClass extends BaseService {
 
     async getErrorHistory(equipId) {
         try {
-            // Busca histórico de erros (Feature do Amigo)
-            // Se o endpoint /log_erros existir no backend, usamos ele.
             const res = await fetch(`${APP_CONFIG.API_BASE_URL}/log_erros`, { headers: this.getHeaders() });
             if (!res.ok) return [];
             
             const allErrors = await res.json();
             
-            // Filtra no cliente (temporário até ter endpoint específico)
             return allErrors.filter(err => 
                 (err.computador && String(err.computador.id) === String(equipId)) || 
                 (err.impressora && String(err.impressora.id) === String(equipId))
@@ -179,47 +184,55 @@ class EquipamentoServiceClass extends BaseService {
     }
 
     async checkDependencies(id) {
-        // Validação antes de excluir (Feature do Amigo)
-        try {
-            // Import dinâmico para evitar ciclo de dependência
-            // Nota: Se não tiver OsService ainda, retorna true
-            return { allowed: true }; 
-        } catch(e) {
-            return { allowed: true };
-        }
+        return { allowed: true }; 
     }
 
-    // --- UTILITÁRIOS ---
-
+    // --- UTILITÁRIOS (LOG) ---
     _logAction(action, details) {
-        // Tenta registrar log de auditoria
         try {
             const user = JSON.parse(localStorage.getItem('sys_user') || '{}');
             const logData = {
-                usuario: { id: user.id || 1 }, // Fallback para admin se não tiver usuário
+                usuario: { id: user.id || 1 }, 
                 acao: action,
-                alvo: 'Equipamento',
+                recurso: 'Equipamento', 
                 detalhes: details,
-                dataHora: new Date().toISOString()
+                dataHora: new Date().toISOString(),
+                usuarioNome: user.nome || 'Sistema'
             };
             
-            // Manda sem await para não travar a tela
             fetch(`${APP_CONFIG.API_BASE_URL}/logs`, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify(logData)
-            }).catch(e => console.warn('Falha ao gravar log:', e));
+            }).catch(e => console.warn('Falha ao gravar log (Network):', e));
         } catch (e) {
-            console.warn('Erro ao preparar log:', e);
+            console.warn('Erro ao preparar log (JS):', e);
         }
     }
 
+    // --- CORREÇÃO DO MAPEAMENTO (JAVA -> TABLE) ---
     _normalize(item, tipo) {
+        // Garante leitura segura dos objetos
+        const nomeUsuario = (item.usuario && item.usuario.nome) ? item.usuario.nome : '-';
+        const nomeSetor = (item.setor && item.setor.nome) ? (item.setor.nome) : '-';
+
         return {
             ...item,
+            id: item.id,
             tipo: tipo,
-            setor: item.setor ? (item.setor.nome || 'Setor ' + item.setor.id) : '-',
-            usuario: item.usuario ? item.usuario.nome : '-',
+            
+            // 1. CORREÇÃO: Mapeia 'numeroSerie' (do Java) para 'serie' (que a tabela espera)
+            serie: item.numeroSerie || item.serie || '-',
+            
+            // 2. CORREÇÃO: Mapeia o objeto usuário para string
+            usuario: nomeUsuario,
+            setor: nomeSetor,
+            
+            // Dados Visuais
+            modelo: item.modelo,
+            sala: item.sala || '-',
+            
+            // IDs para edição
             id_setor: item.setor ? item.setor.id : null,
             id_usuario: item.usuario ? item.usuario.id : null
         };

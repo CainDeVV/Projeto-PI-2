@@ -3,6 +3,7 @@ package com.PI.II.backend.controller;
 import com.PI.II.backend.model.LogAuditoria;
 import com.PI.II.backend.repository.LogAuditoriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort; // Importante para ordenação
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,18 +18,24 @@ public class LogAuditoriaController {
     @Autowired
     private LogAuditoriaRepository logRepo;
 
-    @PostMapping
-    public ResponseEntity<LogAuditoria> salvar(@RequestBody LogAuditoria log) {
-        if (log.getDataHora() == null) {
-            log.setDataHora(LocalDateTime.now());
-        }
-        LogAuditoria salvo = logRepo.save(log);
-        return ResponseEntity.ok(salvo);
-    }
-
+    // LISTAR
     @GetMapping
     public List<LogAuditoria> listar() {
-        // Idealmente ordenaria por data descrescente, mas o findAll serve por enquanto
-        return logRepo.findAll();
+        return logRepo.findAll(Sort.by(Sort.Direction.DESC, "dataHora"));
+    }
+
+    // SALVAR
+    @PostMapping
+    public ResponseEntity<?> salvar(@RequestBody LogAuditoria log) {
+        try {
+            if (log.getDataHora() == null) {
+                log.setDataHora(LocalDateTime.now());
+            }
+            
+            LogAuditoria salvo = logRepo.save(log);
+            return ResponseEntity.ok(salvo);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erro ao salvar log: " + e.getMessage());
+        }
     }
 }

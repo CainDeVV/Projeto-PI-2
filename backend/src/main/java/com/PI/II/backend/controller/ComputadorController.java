@@ -68,6 +68,8 @@ public class ComputadorController {
             if (dados.getSala() != null) pc.setSala(dados.getSala());
             if (dados.getSetor() != null) pc.setSetor(dados.getSetor()); 
             if (dados.getStatus() != null) pc.setStatus(dados.getStatus());
+            if (dados.getSetor() != null) pc.setSetor(dados.getSetor());
+            pc.setUsuario(dados.getUsuario());
 
             Computador atualizado = computadorRepo.save(pc);
             return ResponseEntity.ok(atualizado);

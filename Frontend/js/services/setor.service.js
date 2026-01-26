@@ -107,7 +107,6 @@ class SetorServiceClass extends BaseService {
             return data.map(c => ({
                 ...c, 
                 cidade_vinculada: c.cidade ? c.cidade.nome : '-',
-                // Importante: Guarda o ID da cidade para usar na edição
                 id_cidade_vinculada: c.cidade ? c.cidade.id : null
             }));
         } catch (e) { return []; }
@@ -118,40 +117,42 @@ class SetorServiceClass extends BaseService {
         return cities.map(c => c.nome);
     }
 
-    // --- 5. ESCRITA ---
+    // --- 5. ESCRITA (COM LOGS) ---
 
     async addCity(data) {
-        // Se vier ID no data, usa ele (para atualização)
         const payload = { 
             id: data.id, 
             nome: data.nome, 
             estado: data.uf || data.estado 
         };
         
-        // Remove ID se for nulo (para criação)
         if(!payload.id) delete payload.id;
 
         const res = await fetch(`${APP_CONFIG.API_BASE_URL}/cidades`, {
-            method: 'POST', // Backend usa .save(), então POST serve para create e update se tiver ID
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         if(!res.ok) throw new Error('Erro ao salvar cidade');
+        
+        // LOG
+        this._logAction(data.id ? 'UPDATE' : 'CREATE', `${data.id ? 'Editou' : 'Criou'} Cidade: ${data.nome}`);
+        
         return await res.json();
     }
 
     async updateCity(id, nome, uf) {
-        // CORREÇÃO: Passa o ID para que o Backend atualize em vez de criar
         return await this.addCity({ id, nome, uf }); 
     }
 
     async deleteCity(id) { 
         await fetch(`${APP_CONFIG.API_BASE_URL}/cidades/${id}`, { method: 'DELETE' }); 
+        this._logAction('DELETE', `Excluiu Cidade ID ${id}`);
     }
 
     async addCompany(data) {
         const payload = {
-            id: data.id, // Opcional (para update)
+            id: data.id,
             nome: data.nome,
             cnpj: data.cnpj,
             descricao: data.descricao,
@@ -167,20 +168,24 @@ class SetorServiceClass extends BaseService {
             body: JSON.stringify(payload)
         });
         if(!res.ok) throw new Error('Erro ao salvar empresa');
+
+        // LOG
+        this._logAction(data.id ? 'UPDATE' : 'CREATE', `${data.id ? 'Editou' : 'Criou'} Empresa: ${data.nome}`);
+
         return await res.json();
     }
     
     async updateCompany(id, data) {
-        // CORREÇÃO: Implementação que faltava
-        // Adiciona o ID ao objeto data e reutiliza o addCompany
+        // Implementação da Edição
         return await this.addCompany({ ...data, id: id });
     }
 
     async deleteCompany(id) { 
         await fetch(`${APP_CONFIG.API_BASE_URL}/empresas/${id}`, { method: 'DELETE' }); 
+        this._logAction('DELETE', `Excluiu Empresa ID ${id}`);
     }
     
-    // CRUD Principal de Setor
+    // CRUD Setor (Logs automáticos via BaseService)
     async add(data) {
         return await this.save({ 
             nome: data.nome, 
