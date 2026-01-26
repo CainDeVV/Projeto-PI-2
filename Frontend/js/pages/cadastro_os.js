@@ -95,14 +95,10 @@ class CadastroOsPage extends BaseFormPage {
                 const opt = document.createElement('option');
                 opt.value = s.id; 
                 
-                // --- CORREÇÃO AQUI ---
-                // SetorService já retorna 'empresa' e 'cidade' como strings tratadas no getAll()
-                // Portanto, usamos s.empresa e s.cidade diretamente, não s.nome_empresa
                 const empresa = s.empresa || 'Empresa N/A';
                 const cidade = s.cidade || 'Cidade N/A';
                 
                 opt.text = `${s.nome} - ${empresa} (${cidade})`;
-                // ---------------------
                 
                 this.setorSelect.add(opt);
             });
@@ -199,7 +195,9 @@ class CadastroOsPage extends BaseFormPage {
     }
 
     afterFillForm(data) {
-        if(this.descInput) this.descInput.value = data.descricao_problema || '';
+        if(this.descInput) {
+            this.descInput.value = data.descricao || data.descricaoProblema || '';
+        }
         
         if(this.setorSelect) {
             this.setorSelect.value = data.id_setor;

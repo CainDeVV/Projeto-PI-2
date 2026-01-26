@@ -7,36 +7,51 @@ class UsuariosServiceClass extends BaseService {
         super('usuarios', 'Usuário');
     }
 
-    // --- LEITURA HIDRATADA (JOIN) ---
+    // Transforma os dados do Java em um formato simples para o HTML
+    _normalize(user) {
+        if (!user) return null;
+
+        // 1. Resolve o nome visual do setor
+        let nomeSetor = 'N/A';
+        if (user.setor) {
+            nomeSetor = user.setor.nome || user.setor;
+        } else if (user.nomeSetor) {
+            nomeSetor = user.nomeSetor;
+        }
+
+        const setorId = (user.setor && user.setor.id) ? user.setor.id : user.id_setor;
+
+        return {
+            ...user,
+            id: user.id,
+            nome: user.nome,
+            email: user.email || user.login || '-',
+            tipo: user.tipo || user.tipoPerfil || 'Comum',
+            setor: nomeSetor,
+            
+            id_setor: setorId
+        };
+    }
+
+    // --- LEITURA LISTA (GetAll) ---
     async getAll() {
         try {
-            // this.http.get() bate em /usuarios
             const response = await this.http.get();
-
-            return response.map(user => {
-                // Tenta resolver o nome do setor vindo do Java
-                let nomeSetor = 'N/A';
-                
-                if (user.setor) {
-                    nomeSetor = user.setor.nome || user.setor;
-                } else if (user.nomeSetor) {
-                    nomeSetor = user.nomeSetor;
-                }
-
-                return {
-                    ...user,
-                    id: user.id,
-                    nome: user.nome,
-                    email: user.email || user.login || '-',
-                    tipo: user.tipo || user.tipoPerfil || 'Comum',
-                    setor: nomeSetor,
-                    // Mantém objeto original para edição
-                    id_setor: (user.setor && user.setor.id) ? user.setor.id : user.id_setor
-                };
-            });
+            return response.map(user => this._normalize(user));
         } catch (error) {
-            console.error("Erro ao buscar usuários da API:", error);
+            console.error("Erro ao buscar usuários:", error);
             return [];
+        }
+    }
+
+    // --- LEITURA ÚNICA (GetById) ---
+    async getById(id) {
+        try {
+            const user = await this.http.get(id);
+            return this._normalize(user);
+        } catch (error) {
+            console.error("Erro ao buscar usuário por ID:", error);
+            return null;
         }
     }
 
