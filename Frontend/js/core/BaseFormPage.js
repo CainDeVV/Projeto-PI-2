@@ -2,7 +2,7 @@
 import { HeaderComponent } from '../components/header.js';
 import { SidebarComponent } from '../components/sidebar.js';
 import { setupInputMasks, InputManager } from '../components/inputs.js';
-import { SetorService } from '../services/setor.service.js'; // <--- NOVO
+import { SetorService } from '../services/setor.service.js'; // <--- CORREÇÃO
 import { showToast } from '../components/toast.js';
 import { NavigationService } from '../services/navigation.service.js';
 
@@ -12,12 +12,9 @@ export class BaseFormPage {
         this.service = service;
         this.redirectUrl = redirectUrl;
         this.resourceName = resourceName;
-        
         this.titlePage = document.querySelector('.form-header-title h2');
         this.btnSubmit = document.querySelector('.btn-submit'); 
-        
         this.editId = NavigationService.getQueryParam('id');
-
         this.header = new HeaderComponent('app-header');
         this.sidebar = new SidebarComponent('tree-menu-container');
     }
@@ -26,16 +23,13 @@ export class BaseFormPage {
         this.header.render(() => NavigationService.navigate(this.redirectUrl), 'form');
         this.header.updateButtons('only-back');
         
-        // --- CORREÇÃO: Busca a estrutura real do banco via Service ---
+        // Carrega Sidebar da API
         try {
             const treeData = await SetorService.getTreeStructure();
             this.sidebar.render(treeData, () => {}, false);
         } catch (e) {
-            console.warn("Não foi possível carregar a sidebar:", e);
-            // Renderiza vazio para não quebrar o layout
             this.sidebar.render([], () => {}, false);
         }
-        // -----------------------------------------------------------
 
         setupInputMasks();
         this.setupListeners();
@@ -73,21 +67,16 @@ export class BaseFormPage {
 
     updateUIForEdit() {
         if(this.titlePage) this.titlePage.innerText = `Alterar ${this.resourceName}`;
-        if(this.btnSubmit) {
-            this.btnSubmit.innerHTML = 'SALVAR ALTERAÇÕES <i class="fas fa-check"></i>';
-        }
+        if(this.btnSubmit) this.btnSubmit.innerHTML = 'SALVAR ALTERAÇÕES <i class="fas fa-check"></i>';
     }
 
     setupListeners() {
-        if (this.form) {
-            this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-        }
+        if (this.form) this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         this.addExtraListeners();
     }
 
     async handleSubmit(e) {
         e.preventDefault();
-        
         if (!this.validate()) return;
 
         const originalContent = this.btnSubmit ? this.btnSubmit.innerHTML : 'Salvar';
@@ -99,27 +88,19 @@ export class BaseFormPage {
         try {
             const formData = new FormData(this.form);
             const dataObj = Object.fromEntries(formData.entries());
-
-            if (this.editId) {
-                dataObj.id = this.editId;
-            }
+            if (this.editId) dataObj.id = this.editId;
 
             const extraData = this.getExtraData();
             Object.assign(dataObj, extraData);
 
             await this.service.save(dataObj);
             
-            const action = this.editId ? 'atualizado' : 'cadastrado';
-            showToast(`${this.resourceName} ${action} com sucesso!`, 'success');
-            
-            setTimeout(() => {
-                NavigationService.navigate(this.redirectUrl);
-            }, 500);
+            showToast(`${this.resourceName} salvo com sucesso!`, 'success');
+            setTimeout(() => NavigationService.navigate(this.redirectUrl), 500);
             
         } catch (error) {
             console.error(error);
-            showToast('Erro ao salvar dados: ' + (error.message || ''), 'error');
-            
+            showToast('Erro ao salvar: ' + (error.message || ''), 'error');
             if(this.btnSubmit) {
                 this.btnSubmit.disabled = false;
                 this.btnSubmit.innerHTML = originalContent;
@@ -127,7 +108,6 @@ export class BaseFormPage {
         }
     }
 
-    // --- HOOKS ---
     validate() { return true; } 
     afterFillForm(data) {} 
     addExtraListeners() {} 

@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/ordens-servico") // Padrão de mercado (plural). Se o front usar /os, mude aqui.
-@CrossOrigin(origins = "*") // Evita erros de conexão com o Front
+@RequestMapping("/ordens-servico")
+@CrossOrigin(origins = "*")
 public class OrdemServicoController {
 
     @Autowired private OrdemServicoRepository osRepo;
@@ -26,48 +26,36 @@ public class OrdemServicoController {
     @Autowired private ImpressoraRepository impRepo;
     @Autowired private UsuarioRepository usuarioRepo;
 
-    // 1. LISTAR (Ordenado por Abertos e Data)
+    // 1. LISTAR
     @GetMapping
     public List<OrdemServico> listar() {
         return osRepo.findAllByOrderByStatusAscDataAberturaDesc();
     }
 
-    // 2. ABRIR CHAMADO
+    // 2. BUSCAR POR ID (NOVO - Essencial para Edição)
+    @GetMapping("/{id}")
+    public ResponseEntity<OrdemServico> buscarPorId(@PathVariable Long id) {
+        return osRepo.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // 3. ABRIR CHAMADO
     @PostMapping
     public ResponseEntity<?> abrirChamado(@RequestBody OrdemServico os) {
         try {
-            // Garante dados iniciais
             os.setDataAbertura(LocalDateTime.now());
             os.setStatus("Aberto");
-            os.setDataFechamento(null);
-            os.setSolucao(null);
-
+            
+            // Valida Solicitante
             if (os.getSolicitante() == null || os.getSolicitante().getId() == null) {
                 List<Usuario> usuarios = usuarioRepo.findAll();
-                if (!usuarios.isEmpty()) {
-                    os.setSolicitante(usuarios.get(0)); 
-                } else {
-                    return ResponseEntity.badRequest().body("Erro: É necessário informar um solicitante.");
-                }
+                if (!usuarios.isEmpty()) os.setSolicitante(usuarios.get(0));
+                else return ResponseEntity.badRequest().body("Erro: Solicitante obrigatório.");
             }
-            // --- REGRA DE NEGÓCIO: EQUIPAMENTO VAI PARA 'MANUTENÇÃO' ---
-            if (os.getComputador() != null && os.getComputador().getId() != null) {
-                Optional<Computador> pcOpt = pcRepo.findById(os.getComputador().getId());
-                if (pcOpt.isPresent()) {
-                    Computador pc = pcOpt.get();
-                    pc.setStatus("Manutenção"); 
-                    pcRepo.save(pc);
-                    os.setComputador(pc); 
-                }
-            } else if (os.getImpressora() != null && os.getImpressora().getId() != null) {
-                Optional<Impressora> impOpt = impRepo.findById(os.getImpressora().getId());
-                if (impOpt.isPresent()) {
-                    Impressora imp = impOpt.get();
-                    imp.setStatus("Manutenção"); 
-                    impRepo.save(imp);
-                    os.setImpressora(imp); 
-                }
-            }
+
+            // Regra: Equipamento em Manutenção
+            atualizarStatusEquipamento(os, "Manutenção");
 
             OrdemServico novaOs = osRepo.save(os);
             return ResponseEntity.ok(novaOs);
@@ -77,39 +65,47 @@ public class OrdemServicoController {
         }
     }
 
-    // 3. FECHAR CHAMADO
-    @PutMapping("/{id}/finalizar")
-    public ResponseEntity<?> fecharChamado(@PathVariable Long id, @RequestBody OrdemServico dadosDoFront) {
-        return osRepo.findById(id).map(os -> {
+    // 4. ATUALIZAR (NOVO - Essencial para salvar edições)
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody OrdemServico dados) {
+        return osRepo.findById(id).map(osExistente -> {
             
-            // Atualiza dados da O.S.
-            os.setStatus("Fechado");
-            os.setDataFechamento(LocalDateTime.now());
+            if (dados.getDescricaoProblema() != null) osExistente.setDescricaoProblema(dados.getDescricaoProblema());
+            if (dados.getPrioridade() != null) osExistente.setPrioridade(dados.getPrioridade());
             
-            // Pega a solução que o usuário digitou no Front
-            if (dadosDoFront.getSolucao() != null) {
-                os.setSolucao(dadosDoFront.getSolucao());
-            } else {
-                os.setSolucao("Finalizado sem observações.");
+            // Atualiza Técnico
+            if (dados.getResponsavel() != null) osExistente.setResponsavel(dados.getResponsavel());
+
+            // Se reabrir chamado manualmente
+            if (dados.getStatus() != null && !dados.getStatus().equals(osExistente.getStatus())) {
+                osExistente.setStatus(dados.getStatus());
+                if ("Aberto".equals(dados.getStatus())) {
+                    osExistente.setDataFechamento(null);
+                    osExistente.setSolucao(null);
+                    atualizarStatusEquipamento(osExistente, "Manutenção");
+                }
             }
 
-            //  REGRA DE NEGÓCIO: EQUIPAMENTO VOLTA A SER 'ONLINE'
-            if (os.getComputador() != null) {
-                Computador pc = os.getComputador();
-                pc.setStatus("Online"); 
-                pcRepo.save(pc);
-            } else if (os.getImpressora() != null) {
-                Impressora imp = os.getImpressora();
-                imp.setStatus("Online");
-                impRepo.save(imp);
-            }
-
-            osRepo.save(os);
-            return ResponseEntity.ok(os);
+            return ResponseEntity.ok(osRepo.save(osExistente));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 4. DELETAR (Opcional)
+    // 5. FECHAR CHAMADO
+    @PutMapping("/{id}/finalizar")
+    public ResponseEntity<?> fecharChamado(@PathVariable Long id, @RequestBody OrdemServico dadosDoFront) {
+        return osRepo.findById(id).map(os -> {
+            os.setStatus("Fechado");
+            os.setDataFechamento(LocalDateTime.now());
+            os.setSolucao(dadosDoFront.getSolucao() != null ? dadosDoFront.getSolucao() : "Finalizado.");
+            
+            // Regra: Equipamento Online
+            atualizarStatusEquipamento(os, "Online");
+
+            return ResponseEntity.ok(osRepo.save(os));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // 6. DELETAR
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (osRepo.existsById(id)) {
@@ -117,5 +113,20 @@ public class OrdemServicoController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // Helper
+    private void atualizarStatusEquipamento(OrdemServico os, String novoStatus) {
+        if (os.getComputador() != null && os.getComputador().getId() != null) {
+            pcRepo.findById(os.getComputador().getId()).ifPresent(pc -> {
+                pc.setStatus(novoStatus);
+                pcRepo.save(pc);
+            });
+        } else if (os.getImpressora() != null && os.getImpressora().getId() != null) {
+            impRepo.findById(os.getImpressora().getId()).ifPresent(imp -> {
+                imp.setStatus(novoStatus);
+                impRepo.save(imp);
+            });
+        }
     }
 }
