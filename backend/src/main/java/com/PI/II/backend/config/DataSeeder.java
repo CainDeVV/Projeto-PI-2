@@ -18,16 +18,16 @@ public class DataSeeder {
             ComputadorRepository computadorRepo,
             ImpressoraRepository impressoraRepo,
             EmpresaRepository empresaRepo,
-            CidadeRepository cidadeRepo
+            CidadeRepository cidadeRepo,
+            OrdemServicoRepository osRepo 
     ) {
         return args -> {
             System.out.println("[DEBUG] Verificando banco de dados...");
             
-            // 1. CIDADE (Se não existir, cria)
+            // 1. CIDADE
             Cidade cidade = new Cidade();
             cidade.setNome("Crateús");
             cidade.setEstado("CE");
-            // Truque pra pegar a cidade salva ou criar nova
             if (cidadeRepo.count() == 0) cidadeRepo.save(cidade);
             Cidade cidadeSalva = cidadeRepo.findAll().get(0);
 
@@ -51,7 +51,7 @@ public class DataSeeder {
                 setorRepo.saveAll(List.of(setorTI, setorRH));
             }
             List<Setor> setoresSalvos = setorRepo.findAll();
-            Setor setorTISalvo = setoresSalvos.get(0); // Pega o primeiro
+            Setor setorTISalvo = setoresSalvos.get(0); 
             Setor setorRHSalvo = setoresSalvos.size() > 1 ? setoresSalvos.get(1) : setoresSalvos.get(0);
 
             // 4. COMPUTADORES
@@ -88,11 +88,14 @@ public class DataSeeder {
             if (usuarioRepo.findByCpf(admin.getCpf()).isEmpty()) usuarioRepo.save(admin);
             if (usuarioRepo.findByCpf(tecnico.getCpf()).isEmpty()) usuarioRepo.save(tecnico);
 
+            // Recarrega do banco para garantir que temos os IDs
+            Usuario adminSalvo = usuarioRepo.findByCpf(admin.getCpf()).get();
+
             // 6. IMPRESSORAS 
             System.out.println("[DataSeeder] Criando impressoras...");
             Impressora imp1 = new Impressora();
-            imp1.setModelo("HP LaserJet");
-            imp1.setNumeroSerie("HP-001");
+            imp1.setModelo("HP LaserJet 1020"); 
+            imp1.setNumeroSerie("HP-LaserJet-1020"); // IDÊNTICO AO SIMULADOR
             imp1.setSala("Sala TI");
             imp1.setTonel("80%"); 
             imp1.setContador("1500");
@@ -110,9 +113,33 @@ public class DataSeeder {
 
             if (!impressoraRepo.existsByNumeroSerie(imp1.getNumeroSerie())) impressoraRepo.save(imp1);
             if (!impressoraRepo.existsByNumeroSerie(imp2.getNumeroSerie())) impressoraRepo.save(imp2);
+            
+            // Recarrega para garantir ID
+            Impressora impSalva = impressoraRepo.findAll().stream()
+                .filter(i -> i.getNumeroSerie().equals("HP-LaserJet-1020"))
+                .findFirst()
+                .orElse(null);
+
+            // 7. ORDEM DE SERVIÇO 
+            if (osRepo.count() == 0 && impSalva != null) {
+                System.out.println("[DataSeeder] Criando O.S. de teste...");
+                OrdemServico os = new OrdemServico();
+                os.setTitulo("Falha na Impressão");
+                os.setDescricaoProblema("A impressora está manchando as folhas.");
+                os.setPrioridade("Alta");
+                os.setStatus("Aberto");
+                
+                // Relacionamentos Obrigatórios
+                os.setSolicitante(adminSalvo); 
+                os.setImpressora(impSalva);    
+                os.setSetor(impSalva.getSetor());
+                
+                osRepo.save(os);
+                
+            }
 
             // VERIFICAÇÃO FINAL
-            System.out.println("[DataSeeder] Finalizado! PCs: " + computadorRepo.count() + " | Impressoras: " + impressoraRepo.count());
+            System.out.println("[DataSeeder] Finalizado! PCs: " + computadorRepo.count() + " | O.S.: " + osRepo.count());
         };
     }
 }

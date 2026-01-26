@@ -67,7 +67,7 @@ class EquipamentoServiceClass extends BaseService {
                 });
 
             } catch (error) {
-                console.error("❌ ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
+                console.error("ERRO FATAL NO EQUIPAMENTO SERVICE:", error);
                 
                 if (error.message && error.message.includes('fetch')) {
                      alert(`Erro de Conexão: O Backend está rodando na porta 8080?`);

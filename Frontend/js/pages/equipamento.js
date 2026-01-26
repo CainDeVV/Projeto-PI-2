@@ -46,7 +46,6 @@ class EquipamentoPage extends BaseListPage {
         this.setupMobileBack();
         this.setupClickOutside();
 
-        // --- CÓDIGO NOVO: AUTO-SELEÇÃO VIA URL ---
         const urlParams = new URLSearchParams(window.location.search);
         const selectId = urlParams.get('select');
         
@@ -60,6 +59,9 @@ class EquipamentoPage extends BaseListPage {
                 if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         }
+        setInterval(() => {
+            this.loadData(); 
+        }, 20000); 
     }
 
     setupClickOutside() {
@@ -95,10 +97,7 @@ class EquipamentoPage extends BaseListPage {
         super.handleItemSelect(rowElement, item);
 
         if (this.state.selectedItem) {
-            // CORREÇÃO AQUI:
-            // Apenas atualizamos o estado das abas.
-            // O updateTabsState vai chamar handleTabClick, que por sua vez chama renderTabContent.
-            // Removemos a chamada direta duplicada a renderTabContent() que existia aqui.
+
             this.updateTabsState(item);
             
             if(this.splitContainer) this.splitContainer.classList.add('show-detail');
