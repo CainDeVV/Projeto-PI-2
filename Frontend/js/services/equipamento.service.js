@@ -28,20 +28,31 @@ class EquipamentoServiceClass extends BaseService {
         return []; 
     }
 
-    async getById(id) {
+    async getById(id, typeHint = null) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
             try {
-                // Tenta buscar como PC
-                const pc = await this.fetchJson(`${this.apiPc}/${id}`);
-                return this._normalize(pc, 'computador');
-            } catch (e) {
-                try {
-                    // Se falhar, tenta buscar como Impressora
+                // 1. Se o tipo for explicitamente informado, vai direto no alvo
+                if (typeHint === 'impressora') {
                     const imp = await this.fetchJson(`${this.apiImp}/${id}`);
                     return this._normalize(imp, 'impressora');
-                } catch (e2) {
-                    return null;
                 }
+                
+                if (typeHint === 'computador') {
+                    const pc = await this.fetchJson(`${this.apiPc}/${id}`);
+                    return this._normalize(pc, 'computador');
+                }
+
+                // 2. Fallback: Se não tiver o tipo, mantém a lógica de tentativa e erro (legado)
+                try {
+                    const pc = await this.fetchJson(`${this.apiPc}/${id}`);
+                    return this._normalize(pc, 'computador');
+                } catch (e) {
+                    const imp = await this.fetchJson(`${this.apiImp}/${id}`);
+                    return this._normalize(imp, 'impressora');
+                }
+            } catch (error) {
+                console.error("Equipamento não encontrado:", error);
+                return null;
             }
         }
         return null;
@@ -69,7 +80,6 @@ class EquipamentoServiceClass extends BaseService {
                 body: JSON.stringify(payload)
             });
 
-            // LOG DA AÇÃO
             this._logAction('CREATE', `Criou ${data.tipo}: ${data.modelo}`);
             
             return result;
@@ -91,7 +101,6 @@ class EquipamentoServiceClass extends BaseService {
                 body: JSON.stringify(payload)
             });
 
-            // LOG DA AÇÃO
             this._logAction('UPDATE', `Editou ${data.tipo}: ${data.modelo}`);
 
             return result;
@@ -118,7 +127,6 @@ class EquipamentoServiceClass extends BaseService {
                 throw new Error(errorText || 'Erro ao excluir.');
             }
 
-            // LOG DA AÇÃO
             this._logAction('DELETE', `Excluiu ${tipoApagado} ID ${id}`);
 
             return true;
@@ -132,7 +140,6 @@ class EquipamentoServiceClass extends BaseService {
         delete clean.tipo; 
         if (clean.id) clean.id = parseInt(clean.id, 10);
         
-        // Se vier campo 'serie' (do form), converte para 'numeroSerie' (pro Java)
         if (clean.serie) {
             clean.numeroSerie = clean.serie;
             delete clean.serie;
@@ -153,6 +160,14 @@ class EquipamentoServiceClass extends BaseService {
         } else {
             clean.usuario = null;
         }
+
+        // --- NOVO: Limpeza do campo computador ---
+        if (clean.computador === "" || clean.computador === "0" || clean.computador === 0) {
+            clean.computador = null;
+        } else if (clean.computador && (typeof clean.computador === 'string' || typeof clean.computador === 'number')) {
+            clean.computador = { id: parseInt(clean.computador, 10) };
+        }
+        // -----------------------------------------
 
         return clean;
     }
@@ -212,7 +227,6 @@ class EquipamentoServiceClass extends BaseService {
 
     // --- CORREÇÃO DO MAPEAMENTO (JAVA -> TABLE) ---
     _normalize(item, tipo) {
-        // Garante leitura segura dos objetos
         const nomeUsuario = (item.usuario && item.usuario.nome) ? item.usuario.nome : '-';
         const nomeSetor = (item.setor && item.setor.nome) ? (item.setor.nome) : '-';
 
@@ -221,20 +235,19 @@ class EquipamentoServiceClass extends BaseService {
             id: item.id,
             tipo: tipo,
             
-            // 1. CORREÇÃO: Mapeia 'numeroSerie' (do Java) para 'serie' (que a tabela espera)
+            // Mapeamentos Visuais
             serie: item.numeroSerie || item.serie || '-',
-            
-            // 2. CORREÇÃO: Mapeia o objeto usuário para string
             usuario: nomeUsuario,
             setor: nomeSetor,
-            
-            // Dados Visuais
             modelo: item.modelo,
             sala: item.sala || '-',
             
             // IDs para edição
             id_setor: item.setor ? item.setor.id : null,
-            id_usuario: item.usuario ? item.usuario.id : null
+            id_usuario: item.usuario ? item.usuario.id : null,
+            
+            // --- NOVO: Mapeia o PC pai se existir ---
+            id_computador: item.computador ? item.computador.id : null
         };
     }
 

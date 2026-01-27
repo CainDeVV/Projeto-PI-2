@@ -5,6 +5,8 @@ import { UsuariosService } from '../services/usuarios.service.js';
 import { SetorService } from '../services/setor.service.js';
 import { setupInputMasks, InputManager } from '../components/inputs.js';
 import { DOMUtils } from '../utils.js';
+import { showToast } from '../components/toast.js';
+import { NavigationService } from '../services/navigation.service.js';
 
 class CadastroEquipamentoPage extends BaseFormPage {
     constructor() {
@@ -17,7 +19,7 @@ class CadastroEquipamentoPage extends BaseFormPage {
         
         this.typeSelect = document.getElementById('equip-type-select');
         this.dynamicContainer = document.getElementById('dynamic-fields');
-        this.listas = { setores: [], usuarios: [] };
+        this.listas = { setores: [], usuarios: [], computadores: [] };
     }
 
     async init() {
@@ -33,43 +35,96 @@ class CadastroEquipamentoPage extends BaseFormPage {
 
     async carregarDadosListas() {
         try {
-            const [setores, usuarios] = await Promise.all([
+            const [setores, usuarios, equipamentos] = await Promise.all([
                 SetorService.getAll(),
-                UsuariosService.getAll()
+                UsuariosService.getAll(),
+                EquipamentoService.getAll()
             ]);
+            
             this.listas.setores = setores;
             this.listas.usuarios = usuarios;
+            this.listas.computadores = equipamentos.filter(e => e.tipo === 'computador');
         } catch (e) {
             console.error(e);
         }
     }
 
-    // --- RENDERIZAÇÃO LIMPA ---
+    async loadData(id) {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const typeHint = urlParams.get('type');
+            const item = await this.service.getById(id, typeHint);
+
+            if (item) {
+                this.fillForm(item);
+                this.updateUIForEdit();
+                
+                // Se for impressora e tiver setor, filtra os PCs imediatamente após carregar
+                if (typeHint === 'impressora' && item.id_setor) {
+                    this.atualizarListaComputadoresPorSetor(item.id_setor, item.id_computador);
+                }
+            } else {
+                showToast('Item não encontrado.', 'error');
+                NavigationService.navigate(this.redirectUrl);
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Erro ao carregar dados.', 'error');
+        }
+    }
+
+    // --- NOVA FUNÇÃO: FILTRA PCS POR SETOR ---
+    atualizarListaComputadoresPorSetor(setorId, selectedPcId = null) {
+        const pcSelect = this.dynamicContainer.querySelector('[name="computador"]');
+        if (!pcSelect) return;
+
+        pcSelect.innerHTML = '<option value="">-- Sem vínculo (Rede/Wifi) --</option>';
+        
+        if (!setorId) {
+            pcSelect.disabled = true;
+            return;
+        }
+
+        const pcsDoSetor = this.listas.computadores.filter(pc => String(pc.id_setor) === String(setorId));
+
+        if (pcsDoSetor.length > 0) {
+            pcSelect.disabled = false;
+            pcsDoSetor.forEach(pc => {
+                const opt = document.createElement('option');
+                opt.value = pc.id;
+                opt.text = `${pc.nome || 'PC'} (${pc.serie}) - ${pc.sala}`;
+                if (String(pc.id) === String(selectedPcId)) opt.selected = true;
+                pcSelect.add(opt);
+            });
+        } else {
+            pcSelect.disabled = true;
+            const opt = document.createElement('option');
+            opt.text = "Nenhum PC disponível neste setor";
+            opt.disabled = true;
+            pcSelect.add(opt);
+        }
+    }
+
     renderFields() {
         if (!this.dynamicContainer) return;
         
         const type = this.typeSelect ? this.typeSelect.value : 'computador';
         this.dynamicContainer.innerHTML = ''; 
 
-        // Opções de Setor e Usuário
         const opcoesSetor = this.listas.setores.map(s => {
             const empresa = s.nome_empresa || s.empresa || '?';
             const cidade = s.nome_cidade || s.cidade || '?';
-            return { 
-                value: s.id, 
-                label: `${s.nome} - ${empresa} (${cidade})` 
-            };
+            return { value: s.id, label: `${s.nome} - ${empresa} (${cidade})` };
         });
 
         const opcoesUsuario = this.listas.usuarios.map(u => ({
-            value: u.id, 
-            label: `${u.nome} (CPF: ${u.cpf})`
+            value: u.id, label: `${u.nome} (CPF: ${u.cpf})`
         }));
-
-        // Criação dos Campos
+        
         const fieldUsuario = this.createSelectField('Usuário Responsável', 'usuario', opcoesUsuario, '-- Sem vínculo (Livre) --', true);
         const fieldSetor = this.createSelectField('Setor', 'setor', opcoesSetor, '-- Selecione o Setor --');
         const fieldSala = this.createTextField('Sala / Localização', 'sala', 'Ex: Sala 104, Recepção');
+
         const fields = [];
         
         if (type === 'computador') {
@@ -80,36 +135,41 @@ class CadastroEquipamentoPage extends BaseFormPage {
             fields.push(fieldUsuario); 
             fields.push(fieldSetor);
         } else {
-            // IMPRESSORA
             fields.push(this.createTextField('Nº Série', 'numeroSerie', 'Ex: HP-999', 'serial'));
             fields.push(this.createTextField('Modelo', 'modelo', 'Ex: HP Laserjet Pro'));
             fields.push(fieldSala);
             fields.push(fieldUsuario); 
             fields.push(fieldSetor);
+
+            // Campo de computador começa vazio/desabilitado até escolher o setor
+            const fieldPC = this.createSelectField('Conectado ao PC (Opcional)', 'computador', [], '-- Selecione o Setor primeiro --', true);
+            fields.push(fieldPC);
         }
 
         fields.forEach(field => this.dynamicContainer.appendChild(field));
+
+        // --- ADICIONA O LISTENER DE FILTRO NO SETOR ---
+        const sectorEl = this.dynamicContainer.querySelector('[name="setor"]');
+        if (sectorEl && type === 'impressora') {
+            sectorEl.addEventListener('change', (e) => this.atualizarListaComputadoresPorSetor(e.target.value));
+        }
+
         setupInputMasks();
     }
 
-    // --- CORREÇÃO DO PAYLOAD (JSON) ---
     getExtraData() {
         const setorInput = this.dynamicContainer.querySelector('[name="setor"]');
         const usuarioInput = this.dynamicContainer.querySelector('[name="usuario"]');
+        const pcInput = this.dynamicContainer.querySelector('[name="computador"]');
         
         const dados = {
             tipo: this.typeSelect ? this.typeSelect.value : 'computador'
         };
 
-        // O Java espera objetos aninhados com ID numérico: setor: { id: 1 }
-        if (setorInput && setorInput.value) {
-            dados.setor = { id: parseInt(setorInput.value, 10) };
-        }
-
-        // O Java espera: usuario: { id: 1 }
-        if (usuarioInput && usuarioInput.value) {
-            dados.usuario = { id: parseInt(usuarioInput.value, 10) };
-        }
+        if (setorInput && setorInput.value) dados.setor = { id: parseInt(setorInput.value, 10) };
+        if (usuarioInput && usuarioInput.value) dados.usuario = { id: parseInt(usuarioInput.value, 10) };
+        if (pcInput && pcInput.value) dados.computador = { id: parseInt(pcInput.value, 10) };
+        else dados.computador = null;
 
         return dados;
     }
@@ -126,11 +186,8 @@ class CadastroEquipamentoPage extends BaseFormPage {
         return isValid;
     }
 
-    // --- PREENCHIMENTO NA EDIÇÃO ---
     afterFillForm(data) {
         if (this.typeSelect) {
-            // O backend devolve "computador" ou "impressora" no campo tipo? 
-            // Se não, tentamos adivinhar ou mantemos o padrão
             if (data.tipo) {
                 this.typeSelect.value = data.tipo;
             }
@@ -145,27 +202,18 @@ class CadastroEquipamentoPage extends BaseFormPage {
         
         inputs.forEach(input => {
             if (input.name === 'setor') {
-                // CORREÇÃO AQUI: Prioriza id_setor, pois data.setor agora é uma string (nome)
                 const setorId = data.id_setor || (typeof data.setor === 'object' ? data.setor.id : null);
-                
                 if (setorId) {
                     input.value = setorId;
-                    // Fallback visual
-                    if (!input.value && setorId) {
-                        const opt = document.createElement('option');
-                        opt.value = setorId;
-                        opt.text = `Setor ID ${setorId}`;
-                        opt.selected = true;
-                        input.add(opt);
-                    }
                 }
             } 
             else if (input.name === 'usuario') {
-                // CORREÇÃO AQUI: Prioriza id_usuario
                 const userId = data.id_usuario || (typeof data.usuario === 'object' ? data.usuario.id : null);
                 if (userId) input.value = userId;
             }
-            // Preenche numeroSerie, modelo, sala, nome
+            else if (input.name === 'computador') {
+                // O preenchimento do PC na edição é feito no loadData via atualizarListaComputadoresPorSetor
+            }
             else if (data[input.name]) {
                 input.value = data[input.name];
             }
