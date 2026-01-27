@@ -21,14 +21,18 @@ public class LogErro {
     private String codigoErro;
 
     @Column(length = 20)
-    private String severidade = "Alerta"; 
+    private String severidade = "Alerta";
 
     @Column(name = "data_hora")
     private LocalDateTime dataHora = LocalDateTime.now();
 
     private Boolean resolvido = false;
 
-    // Relacionamentos
+    private String equipamentoNome;
+    private String equipamentoSala;
+    private Long idEquipamentoAlvo; 
+
+    // RELACIONAMENTOS REAIS  
     @ManyToOne
     @JoinColumn(name = "id_computador")
     private Computador computador;
@@ -41,25 +45,48 @@ public class LogErro {
     @JoinColumn(name = "id_os_gerada")
     private OrdemServico ordemServico;
 
-    // Getters e Setters
+    // --- GETTERS E SETTERS ---
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
+
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
+
     public String getCodigoErro() { return codigoErro; }
     public void setCodigoErro(String codigoErro) { this.codigoErro = codigoErro; }
+
     public String getSeveridade() { return severidade; }
     public void setSeveridade(String severidade) { this.severidade = severidade; }
+
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
+
     public Boolean getResolvido() { return resolvido; }
     public void setResolvido(Boolean resolvido) { this.resolvido = resolvido; }
+    public String getEquipamentoNome() { return equipamentoNome; }
+    public void setEquipamentoNome(String equipamentoNome) { this.equipamentoNome = equipamentoNome; }
+
+    public String getEquipamentoSala() { return equipamentoSala; }
+    public void setEquipamentoSala(String equipamentoSala) { this.equipamentoSala = equipamentoSala; }
+
+    public Long getIdEquipamentoAlvo() { return idEquipamentoAlvo; }
+    public void setIdEquipamentoAlvo(Long idEquipamentoAlvo) { this.idEquipamentoAlvo = idEquipamentoAlvo; }
+
+    // Relacionamentos
     public Computador getComputador() { return computador; }
     public void setComputador(Computador computador) { this.computador = computador; }
+
     public Impressora getImpressora() { return impressora; }
     public void setImpressora(Impressora impressora) { this.impressora = impressora; }
+
     public OrdemServico getOrdemServico() { return ordemServico; }
     public void setOrdemServico(OrdemServico ordemServico) { this.ordemServico = ordemServico; }
+
+    public Long getIdOsGerada() {
+        return ordemServico != null ? ordemServico.getId() : null;
+    }
 }

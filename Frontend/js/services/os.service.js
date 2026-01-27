@@ -1,14 +1,13 @@
 /* js/services/os.service.js */
 import { BaseService } from '../core/BaseService.js';
 import { AuthService } from './auth.service.js';
-import { APP_CONFIG } from '../config/constants.js'; // Garantir que temos acesso à config se precisar
+import { APP_CONFIG } from '../config/constants.js'; 
 
 class OsServiceClass extends BaseService {
     constructor() {
-        super('ordens-servico', 'Ordem de Serviço');
+        super('ordens-servico', 'Ordem de Serviço'); 
     }
 
-    // Traduz Java -> Frontend ---
     _mapToFrontend(os) {
         const setorNome = os.setor ? os.setor.nome : 'N/A';
         let equipName = 'Genérico';
@@ -60,28 +59,29 @@ class OsServiceClass extends BaseService {
         } catch (e) { return null; }
     }
 
-    // --- ESCRITA (CRIAÇÃO E ATUALIZAÇÃO) ---
-    // Nota: O Log de CREATE e UPDATE normal acontece automaticamente dentro de super.save()
+    // --- ESCRITA ---
     async save(data) {
-        // Formata para o Java (Objetos Aninhados)
         const payload = {
             id: data.id,
             titulo: "Chamado via Sistema",
             descricaoProblema: data.descricao || data.descricaoProblema,
-            prioridade: "Media",
+            prioridade: data.prioridade || "Media",
             status: data.status || "Aberto",
+            
+            dataAbertura: new Date().toISOString(),
             dataFechamento: data.dataFechamento,
             solucao: data.solucao,
             
-            // Relacionamentos Obrigatórios
-            setor: { id: parseInt(data.id_setor) },
-            solicitante: { id: parseInt(data.id_usuario_solicitante) }
+            setor: { id: parseInt(data.id_setor || 0) },
+            solicitante: { id: parseInt(data.id_usuario_solicitante || 0) }
         };
 
+        // Opcionais
         if (data.id_usuario_responsavel) {
             payload.responsavel = { id: parseInt(data.id_usuario_responsavel) };
         }
 
+        // Lógica PC vs Impressora
         if (data.id_computador) {
             payload.computador = { id: parseInt(data.id_computador) };
             payload.impressora = null;
@@ -97,7 +97,7 @@ class OsServiceClass extends BaseService {
     async add(d) { return this.save(d); }
     async update(id, d) { return this.save({ ...d, id }); }
 
-    // --- AÇÃO ESPECIAL: FECHAR/REABRIR ---
+    //  AÇÃO ESPECIAL: FECHAR/REABRIR 
     async toggleStatus(id) {
         const item = await this.getById(id);
         if(!item) return;
@@ -107,8 +107,10 @@ class OsServiceClass extends BaseService {
         if (novoStatus === 'Fechado') {
             const currentUser = AuthService.getUser();
             
-            // Endpoint específico para finalizar
-            await fetch(`${this.http.apiBase}/ordens-servico/${id}/finalizar`, {
+
+            const url = `${APP_CONFIG.API_BASE_URL}/${this.endpoint}/${id}/finalizar`;
+
+            await fetch(url, {
                 method: 'PUT',
                 headers: this.http._getHeaders(),
                 body: JSON.stringify({ 
@@ -119,7 +121,6 @@ class OsServiceClass extends BaseService {
             this._logAction('UPDATE', `Finalizou a O.S. #${id}`);
 
         } else {
-            // Reabrir usa o save() normal, então o log é automático pelo BaseService
             await this.save({ 
                 id, status: 'Aberto', dataFechamento: null, solucao: null,
                 id_setor: item.id_setor, id_usuario_solicitante: item.id_usuario_solicitante

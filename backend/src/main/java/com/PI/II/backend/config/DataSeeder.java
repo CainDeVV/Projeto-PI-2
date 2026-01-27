@@ -6,6 +6,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -19,143 +21,175 @@ public class DataSeeder {
             ImpressoraRepository impressoraRepo,
             EmpresaRepository empresaRepo,
             CidadeRepository cidadeRepo,
-            OrdemServicoRepository osRepo 
+            OrdemServicoRepository osRepo,
+            LogErroRepository logErroRepo
     ) {
         return args -> {
-            System.out.println("[DEBUG] Verificando banco de dados...");
-            
-            // 1. CIDADE
+            System.out.println("=============================================");
+            System.out.println("[DataSeeder] INICIANDO POPULAÇÃO DO BANCO...");
+            System.out.println("=============================================");
+
+            // 1. INFRAESTRUTURA
             Cidade cidade = new Cidade();
             cidade.setNome("Crateús");
             cidade.setEstado("CE");
             if (cidadeRepo.count() == 0) cidadeRepo.save(cidade);
             Cidade cidadeSalva = cidadeRepo.findAll().get(0);
 
-            // 2. EMPRESA
             Empresa empresa = new Empresa();
-            empresa.setNome("Prefeitura de Crateús");
-            empresa.setCnpj("00.000.000/0001-00");
-            empresa.setCidade(cidadeSalva); 
+            empresa.setNome("Prefeitura Municipal");
+            empresa.setCnpj("12.345.678/0001-99");
+            empresa.setCidade(cidadeSalva);
             if (empresaRepo.count() == 0) empresaRepo.save(empresa);
             Empresa empresaSalva = empresaRepo.findAll().get(0);
 
-            // 3. SETORES
+            // 2. SETORES
             if (setorRepo.count() == 0) {
-                Setor setorTI = new Setor();
-                setorTI.setNome("TI - Suporte");
-                setorTI.setEmpresa(empresaSalva);
+                Setor ti = new Setor(); ti.setNome("TI - Suporte"); ti.setEmpresa(empresaSalva);
+                Setor rh = new Setor(); rh.setNome("Recursos Humanos"); rh.setEmpresa(empresaSalva);
+                Setor fin = new Setor(); fin.setNome("Financeiro"); fin.setEmpresa(empresaSalva);
+                Setor rec = new Setor(); rec.setNome("Recepção"); rec.setEmpresa(empresaSalva);
                 
-                Setor setorRH = new Setor();
-                setorRH.setNome("Recursos Humanos");
-                setorRH.setEmpresa(empresaSalva);
-                setorRepo.saveAll(List.of(setorTI, setorRH));
+                setorRepo.saveAll(Arrays.asList(ti, rh, fin, rec));
             }
-            // Recarrega setores do banco para garantir que tenham IDs
-            List<Setor> setoresSalvos = setorRepo.findAll();
-            Setor setorTISalvo = setoresSalvos.get(0); 
-            Setor setorRHSalvo = setoresSalvos.size() > 1 ? setoresSalvos.get(1) : setoresSalvos.get(0);
+            List<Setor> setores = setorRepo.findAll();
+            Setor setorTI = setores.stream().filter(s -> s.getNome().contains("TI")).findFirst().orElse(setores.get(0));
+            Setor setorRH = setores.stream().filter(s -> s.getNome().contains("Humanos")).findFirst().orElse(setores.get(0));
+            Setor setorFin = setores.stream().filter(s -> s.getNome().contains("Financeiro")).findFirst().orElse(setores.get(0));
+            Setor setorRec = setores.stream().filter(s -> s.getNome().contains("Recepção")).findFirst().orElse(setores.get(0));
 
-            // 4. COMPUTADORES
-            System.out.println("[DataSeeder] Criando computadores...");
-            for (int i = 1; i <= 5; i++) {
-                Computador pc = new Computador();
-                pc.setNome("PC-0" + i);
-                pc.setModelo("Dell Optiplex");
-                pc.setNumeroSerie("DELL-PC-" + i);
-                pc.setSala("Sala 0" + i);
-                pc.setStatus("Online");
-                pc.setSetor(i % 2 == 0 ? setorRHSalvo : setorTISalvo); 
+            // 3. USUÁRIOS (CPFs VÁLIDOS GERADOS PARA TESTE)
+            // Estes CPFs passam na validação de algoritmo padrão (mod 11)
+            String cpfAdmin = "081.887.593-33";
+            String cpfTecnico = "768.452.910-09";
+            String cpfRH = "135.246.809-21";
+            String cpfFin = "832.109.470-44";
+            String cpfRec = "601.839.250-88";
+
+            if (usuarioRepo.count() == 0) {
+                criarUsuario(usuarioRepo, "Cainã Admin", cpfAdmin, "123", "ADMIN", setorTI);
+                criarUsuario(usuarioRepo, "João Técnico", cpfTecnico, "123", "TECNICO", setorTI);
+                criarUsuario(usuarioRepo, "Maria do RH", cpfRH, "123", "Comum", setorRH);
+                criarUsuario(usuarioRepo, "Pedro Fin", cpfFin, "123", "Comum", setorFin);
+                criarUsuario(usuarioRepo, "Ana Rec", cpfRec, "123", "Comum", setorRec);
+            }
+            // Recupera usando os CPFs válidos
+            Usuario admin = usuarioRepo.findByCpf(cpfAdmin).orElse(null);
+            Usuario tecnico = usuarioRepo.findByCpf(cpfTecnico).orElse(null);
+            Usuario userFin = usuarioRepo.findByCpf(cpfFin).orElse(null);
+            Usuario userRec = usuarioRepo.findByCpf(cpfRec).orElse(null);
+            Usuario userRH = usuarioRepo.findByCpf(cpfRH).orElse(null);
+
+            // 4. EQUIPAMENTOS
+            if (computadorRepo.count() == 0) {
+                Computador pcAdmin = new Computador(); pcAdmin.setNome("WS-ADMIN-01"); pcAdmin.setModelo("Dell Precision"); pcAdmin.setNumeroSerie("SRV-001"); pcAdmin.setSala("Sala TI"); pcAdmin.setStatus("Online"); pcAdmin.setSetor(setorTI);
                 
-                if (!computadorRepo.existsByNumeroSerie(pc.getNumeroSerie())) {
-                    computadorRepo.save(pc);
+                Computador pcRH = new Computador(); pcRH.setNome("DT-RH-02"); pcRH.setModelo("Dell Optiplex"); pcRH.setNumeroSerie("RH-100"); pcRH.setSala("Sala 202"); pcRH.setStatus("Online"); pcRH.setSetor(setorRH);
+
+                Computador pcFin = new Computador(); pcFin.setNome("DT-FIN-05"); pcFin.setModelo("Lenovo Think"); pcFin.setNumeroSerie("FIN-555"); pcFin.setSala("Sala Cofre"); pcFin.setStatus("Manutenção"); pcFin.setSetor(setorFin);
+
+                computadorRepo.saveAll(Arrays.asList(pcAdmin, pcRH, pcFin));
+            }
+            Computador pcFinComDefeito = computadorRepo.findByNumeroSerie("FIN-555").orElse(null);
+            Computador pcRHBom = computadorRepo.findByNumeroSerie("RH-100").orElse(null);
+
+            // IMPRESSORAS
+            if (impressoraRepo.count() == 0) {
+                Impressora impRh = new Impressora(); impRh.setModelo("Kyocera"); impRh.setNumeroSerie("KYO-999"); impRh.setSala("RH"); impRh.setTonel("15%"); impRh.setContador("15400"); impRh.setStatus("Online"); impRh.setSetor(setorRH);
+                
+                Impressora impRec = new Impressora(); impRec.setModelo("HP Laser"); impRec.setNumeroSerie("HP-REC-01"); impRec.setSala("Recepção"); impRec.setTonel("0%"); impRec.setContador("900"); impRec.setStatus("Offline"); impRec.setSetor(setorRec);
+                
+                impressoraRepo.saveAll(Arrays.asList(impRh, impRec));
+            }
+            Impressora impRecQuebrada = impressoraRepo.findByNumeroSerie("HP-REC-01").orElse(null);
+
+            // 5. ORDENS DE SERVIÇO
+            if (osRepo.count() == 0 && pcRHBom != null && pcFinComDefeito != null && impRecQuebrada != null) {
+                // OS 1: Fechada
+                OrdemServico os1 = new OrdemServico();
+                os1.setTitulo("Formatação");
+                os1.setDescricaoProblema("Instalar Windows.");
+                os1.setPrioridade("Baixa");
+                os1.setStatus("Fechado");
+                os1.setDataAbertura(LocalDateTime.now().minusDays(10));
+                os1.setDataFechamento(LocalDateTime.now().minusDays(9));
+                os1.setSolucao("Entregue.");
+                os1.setSolicitante(userRH);
+                os1.setResponsavel(tecnico);
+                os1.setSetor(setorRH);
+                os1.setComputador(pcRHBom);
+
+                // OS 2: Aberta (PC Quebrado)
+                OrdemServico os2 = new OrdemServico();
+                os2.setTitulo("Tela Azul");
+                os2.setDescricaoProblema("Reiniciando sozinho.");
+                os2.setPrioridade("Alta");
+                os2.setStatus("Aberto");
+                os2.setDataAbertura(LocalDateTime.now().minusHours(4));
+                os2.setSolicitante(userFin);
+                os2.setSetor(setorFin);
+                os2.setComputador(pcFinComDefeito);
+
+                // OS 3: Aberta (Impressora Quebrada)
+                OrdemServico os3 = new OrdemServico();
+                os3.setTitulo("Atolamento");
+                os3.setDescricaoProblema("Papel preso.");
+                os3.setPrioridade("Media");
+                os3.setStatus("Aberto");
+                os3.setDataAbertura(LocalDateTime.now().minusMinutes(30));
+                os3.setSolicitante(userRec);
+                os3.setSetor(setorRec);
+                os3.setImpressora(impRecQuebrada);
+
+                osRepo.saveAll(Arrays.asList(os1, os2, os3));
+            }
+
+            // 6. LOGS DE ERRO
+            if (logErroRepo.count() == 0) {
+                if (pcFinComDefeito != null) {
+                    LogErro err1 = new LogErro();
+                    err1.setDataHora(LocalDateTime.now().minusMinutes(10));
+                    err1.setSeveridade("Crítico");
+                    err1.setTitulo("Superaquecimento CPU");
+                    err1.setDescricao("Sensor em 95°C.");
+                    err1.setCodigoErro("CPU_OVERHEAT");
+                    err1.setResolvido(false);
+                    err1.setEquipamentoNome(pcFinComDefeito.getNome());
+                    err1.setEquipamentoSala(pcFinComDefeito.getSala());
+                    err1.setIdEquipamentoAlvo(pcFinComDefeito.getId());
+                    logErroRepo.save(err1);
+                }
+
+                if (impRecQuebrada != null) {
+                    LogErro err2 = new LogErro();
+                    err2.setDataHora(LocalDateTime.now().minusHours(2));
+                    err2.setSeveridade("Alerta");
+                    err2.setTitulo("Falha de Rede");
+                    err2.setDescricao("Timeout de conexão.");
+                    err2.setCodigoErro("NET_TIMEOUT");
+                    err2.setResolvido(false);
+                    err2.setEquipamentoNome(impRecQuebrada.getModelo());
+                    err2.setEquipamentoSala(impRecQuebrada.getSala());
+                    err2.setIdEquipamentoAlvo(impRecQuebrada.getId());
+                    logErroRepo.save(err2);
                 }
             }
 
-            // 5. USUÁRIOS
-            Usuario admin = new Usuario();
-            admin.setNome("Cainã Admin");
-            admin.setCpf("081.887.593-33");
-            admin.setSenha("123");
-            admin.setTipo("ADMIN");
-            admin.setSetor(setorTISalvo);
-
-            Usuario tecnico = new Usuario();
-            tecnico.setNome("João Técnico");
-            tecnico.setCpf("693.082.880-74");
-            tecnico.setSenha("123");
-            tecnico.setTipo("TECNICO");
-            tecnico.setSetor(setorTISalvo);
-
-            Usuario comum = new Usuario();
-            comum.setNome("Maria do RH");
-            comum.setCpf("486.051.580-34");
-            comum.setSenha("123");
-            comum.setTipo("Comum");
-            comum.setSetor(setorRHSalvo);
-
-            if (usuarioRepo.findByCpf(admin.getCpf()).isEmpty()) usuarioRepo.save(admin);
-            if (usuarioRepo.findByCpf(tecnico.getCpf()).isEmpty()) usuarioRepo.save(tecnico);
-            if (usuarioRepo.findByCpf(comum.getCpf()).isEmpty()) usuarioRepo.save(comum);
-
-            Usuario adminSalvo = usuarioRepo.findByCpf(admin.getCpf()).get();
-
-            // 6. IMPRESSORAS 
-            System.out.println("[DataSeeder] Criando impressoras...");
-            
-            // Tenta pegar o PC-01 para vincular a impressora (Teste do novo recurso)
-            Computador pc01 = computadorRepo.findAll().stream()
-                .filter(pc -> pc.getNumeroSerie().equals("DELL-PC-1"))
-                .findFirst()
-                .orElse(null);
-
-            Impressora imp1 = new Impressora();
-            imp1.setModelo("HP LaserJet 1020"); 
-            imp1.setNumeroSerie("HP-LaserJet-1020"); 
-            imp1.setSala("Sala TI");
-            imp1.setTonel("80%"); 
-            imp1.setContador("1500");
-            imp1.setStatus("Online");
-            imp1.setSetor(setorTISalvo);
-            if (pc01 != null) {
-                imp1.setComputador(pc01); // VINCULA AO COMPUTADOR
-            }
-
-            Impressora imp2 = new Impressora();
-            imp2.setModelo("Epson EcoTank");
-            imp2.setNumeroSerie("EPS-002");
-            imp2.setSala("Recepção");
-            imp2.setTonel("10%"); 
-            imp2.setContador("5000");
-            imp2.setStatus("Offline"); 
-            imp2.setSetor(setorRHSalvo);
-            // imp2 sem computador (impressora de rede ou Wi-Fi)
-
-            if (!impressoraRepo.existsByNumeroSerie(imp1.getNumeroSerie())) impressoraRepo.save(imp1);
-            if (!impressoraRepo.existsByNumeroSerie(imp2.getNumeroSerie())) impressoraRepo.save(imp2);
-            
-            Impressora impSalva = impressoraRepo.findAll().stream()
-                .filter(i -> i.getNumeroSerie().equals("HP-LaserJet-1020"))
-                .findFirst()
-                .orElse(null);
-
-            // 7. ORDEM DE SERVIÇO 
-            if (osRepo.count() == 0 && impSalva != null) {
-                System.out.println("[DataSeeder] Criando O.S. de teste...");
-                OrdemServico os = new OrdemServico();
-                os.setTitulo("Falha na Impressão");
-                os.setDescricaoProblema("A impressora está manchando as folhas.");
-                os.setPrioridade("Alta");
-                os.setStatus("Aberto");
-                
-                os.setSolicitante(adminSalvo); 
-                os.setImpressora(impSalva);    
-                os.setSetor(impSalva.getSetor());
-                
-                osRepo.save(os);
-            }
-
-            // VERIFICAÇÃO FINAL
-            System.out.println("[DataSeeder] Finalizado! PCs: " + computadorRepo.count() + " | O.S.: " + osRepo.count());
+            System.out.println("=============================================");
+            System.out.println("[DataSeeder] BANCO POPULADO COM SUCESSO! 🚀");
+            System.out.println("=============================================");
         };
+    }
+
+    private void criarUsuario(UsuarioRepository repo, String nome, String cpf, String senha, String tipo, Setor setor) {
+        if (repo.findByCpf(cpf).isEmpty()) {
+            Usuario u = new Usuario();
+            u.setNome(nome);
+            u.setCpf(cpf);
+            u.setSenha(senha);
+            u.setTipo(tipo);
+            u.setSetor(setor);
+            repo.save(u);
+        }
     }
 }

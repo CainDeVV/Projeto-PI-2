@@ -1,3 +1,4 @@
+/* MANTENHA ASSIM NO SEU JAVA (LogErroController.java) */
 package com.PI.II.backend.controller;
 
 import com.PI.II.backend.model.LogErro;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/log_erros")
+@RequestMapping("/log_erros") 
 @CrossOrigin(origins = "*")
 public class LogErroController {
 

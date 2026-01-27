@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional; 
+import java.util.Optional;
 
 @Repository
 public interface ImpressoraRepository extends JpaRepository<Impressora, Long> {
@@ -14,11 +14,11 @@ public interface ImpressoraRepository extends JpaRepository<Impressora, Long> {
 
     boolean existsByNumeroSerie(String numeroSerie);
 
-    // FILTROS DE STATUS/MODELO 
+    // FILTROS DE STATUS/MODELO
     List<Impressora> findByStatusAndModelo(String status, String modelo);
-    
+
     List<Impressora> findByStatus(String status);
-    
+
     List<Impressora> findByModelo(String modelo);
 
     List<Impressora> findByComputadorId(Long computadorId);
