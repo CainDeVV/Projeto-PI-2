@@ -110,6 +110,31 @@ A utilização de containers garante que o sistema possa ser executado **indepen
 > Não é necessário ter Java, Node ou PostgreSQL instalados localmente.
 
 ---
+Como rodar:
+Tenha o docker instalado, abra o docker
+
+# Construir o sistema
+docker-compose up --build -d
+
+# Acessar o site
+http://localhost:3000/
+
+Admin:
+Login: 081.887.593-33
+Senha: 123
+
+Técnico:
+Login: 693.082.880-74
+Senha: 123
+
+Usuário Comum:
+Login: 191.225.020-92
+Senha: 123
+
+# Derrubar o sistema
+docker-compose down -v
+
+Ctrl+f5 para limpar o cache
 
 ### Passo a Passo para Execução
 
