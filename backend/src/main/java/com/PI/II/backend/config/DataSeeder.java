@@ -110,7 +110,7 @@ public class DataSeeder {
             if (usuarioRepo.count() == 0) {
                 Usuario admin = new Usuario(); admin.setNome("Cainã Admin"); admin.setCpf("081.887.593-33"); admin.setSenha("123"); admin.setTipo("ADMIN"); admin.setSetor(setorTI);
                 Usuario tecnico = new Usuario(); tecnico.setNome("João Técnico"); tecnico.setCpf("693.082.880-74"); tecnico.setSenha("123"); tecnico.setTipo("TECNICO"); tecnico.setSetor(setorTI);
-                Usuario maria = new Usuario(); maria.setNome("Maria do RH"); maria.setCpf("111.111.111-11"); maria.setSenha("123"); maria.setTipo("Comum"); maria.setSetor(setorRH);
+                Usuario maria = new Usuario(); maria.setNome("Maria do RH"); maria.setCpf("191.225.020-92"); maria.setSenha("123"); maria.setTipo("Comum"); maria.setSetor(setorRH);
                 Usuario drPedro = new Usuario(); drPedro.setNome("Dr. Pedro"); drPedro.setCpf("222.222.222-22"); drPedro.setSenha("123"); drPedro.setTipo("Comum"); drPedro.setSetor(setorUTI);
                 Usuario profAna = new Usuario(); profAna.setNome("Prof. Ana"); profAna.setCpf("333.333.333-33"); profAna.setSenha("123"); profAna.setTipo("Comum"); profAna.setSetor(setorLab);
                 Usuario luizCaixa = new Usuario(); luizCaixa.setNome("Luiz Operador"); luizCaixa.setCpf("444.444.444-44"); luizCaixa.setSenha("123"); luizCaixa.setTipo("Comum"); luizCaixa.setSetor(setorCaixa);
@@ -123,7 +123,7 @@ public class DataSeeder {
             Usuario uProf = usuarioRepo.findByCpf("333.333.333-33").get();
             Usuario uCaixa = usuarioRepo.findByCpf("444.444.444-44").get();
             Usuario uMedico = usuarioRepo.findByCpf("222.222.222-22").get();
-            Usuario uMaria = usuarioRepo.findByCpf("111.111.111-11").get();
+            Usuario uMaria = usuarioRepo.findByCpf("191.225.020-92").get();
 
             // =================================================================================
             // 5. EQUIPAMENTOS (PCs e Impressoras)

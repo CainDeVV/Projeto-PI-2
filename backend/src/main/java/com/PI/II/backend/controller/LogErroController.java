@@ -22,6 +22,13 @@ public class LogErroController {
         return logErroRepo.findAll();
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<LogErro> buscarPorId(@PathVariable Long id) {
+        return logErroRepo.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> resolver(@PathVariable Long id, @RequestBody LogErro dados) {
         return logErroRepo.findById(id).map(erro -> {

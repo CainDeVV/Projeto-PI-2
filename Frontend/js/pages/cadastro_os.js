@@ -233,16 +233,30 @@ class CadastroOsPage extends BaseFormPage {
             if (errorItem) {
                 console.log("Carregando dados do erro:", errorItem);
 
+                // Preenche descrição
                 if (this.descInput) {
-                    this.descInput.value = `[AUTO] Monitoramento: ${errorItem.titulo}\nCód: ${errorItem.codigo_erro}\nDetalhes: ${errorItem.descricao}`;
+                    this.descInput.value = `[AUTO] Monitoramento: ${errorItem.titulo}\nCód: ${errorItem.codigoErro}\nDetalhes: ${errorItem.descricao}`;
                 }
 
-                const equipId = errorItem.id_computador || errorItem.id_impressora;
+                // CORREÇÃO AQUI:
+                // O Java retorna objetos aninhados (computador.id) ou idEquipamentoAlvo
+                let equipId = errorItem.idEquipamentoAlvo;
+                
+                // Se idEquipamentoAlvo for nulo, tenta pegar dos objetos aninhados
+                if (!equipId) {
+                    if (errorItem.computador) equipId = errorItem.computador.id;
+                    else if (errorItem.impressora) equipId = errorItem.impressora.id;
+                }
+
+                // Procura na lista local de equipamentos
                 const equip = this.allEquipments.find(e => String(e.id) === String(equipId));
                 
                 if (equip) {
+                    // Seleciona Setor
                     if (this.setorSelect) {
                         this.setorSelect.value = equip.id_setor;
+                        
+                        // Atualiza lista de equipamentos e seleciona o alvo
                         this.filterEquipmentsBySector(equip.id_setor, equip.id); 
                     }
                 }

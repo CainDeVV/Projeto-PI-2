@@ -6,6 +6,10 @@ import { APP_CONFIG } from '../config/constants.js';
 class OsServiceClass extends BaseService {
     constructor() {
         super('ordens-servico', 'Ordem de Serviço'); 
+        
+        // --- CORREÇÃO AQUI ---
+        // Definimos explicitamente a variável para que o método toggleStatus a encontre
+        this.endpoint = 'ordens-servico'; 
     }
 
     _mapToFrontend(os) {
@@ -107,10 +111,11 @@ class OsServiceClass extends BaseService {
         if (novoStatus === 'Fechado') {
             const currentUser = AuthService.getUser();
             
-
+            // Agora 'this.endpoint' existe e a URL será:
+            // http://localhost:8080/ordens-servico/3/finalizar
             const url = `${APP_CONFIG.API_BASE_URL}/${this.endpoint}/${id}/finalizar`;
 
-            await fetch(url, {
+            const res = await fetch(url, {
                 method: 'PUT',
                 headers: this.http._getHeaders(),
                 body: JSON.stringify({ 
@@ -118,12 +123,27 @@ class OsServiceClass extends BaseService {
                 })
             });
 
+            // Se o servidor retornar erro (400, 500), lançamos erro para o JS parar
+            if (!res.ok) {
+                const errorTxt = await res.text();
+                throw new Error(errorTxt || "Erro ao finalizar chamado no servidor.");
+            }
+
             this._logAction('UPDATE', `Finalizou a O.S. #${id}`);
 
         } else {
+            // Reabrir é um save normal
             await this.save({ 
-                id, status: 'Aberto', dataFechamento: null, solucao: null,
-                id_setor: item.id_setor, id_usuario_solicitante: item.id_usuario_solicitante
+                id, 
+                status: 'Aberto', 
+                dataFechamento: null, 
+                solucao: null,
+                // Precisamos passar os IDs originais para o save não quebrar
+                id_setor: item.id_setor, 
+                id_usuario_solicitante: item.id_usuario_solicitante,
+                id_computador: item.id_computador,
+                id_impressora: item.id_impressora,
+                descricaoProblema: item.descricao
             });
         }
     }

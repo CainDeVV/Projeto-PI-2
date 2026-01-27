@@ -93,14 +93,21 @@ class DashboardPage {
         const cityStats = {};
 
         equips.forEach(eq => {
+            // Busca o objeto do setor completo para descobrir a cidade
             const setorObj = sectors.find(s => s.nome === eq.setor);
-            const cityName = setorObj ? setorObj.nome_cidade : 'Indefinido';
+
+            const cityName = setorObj ? setorObj.cidade : 'Indefinido';
+            
             if (!cityStats[cityName]) cityStats[cityName] = { pcs: 0, printers: 0 };
+            
             if (eq.tipo === 'computador') cityStats[cityName].pcs++;
             else cityStats[cityName].printers++;
         });
 
-        Object.entries(cityStats).forEach(([city, stats]) => {
+        // Ordenar alfabeticamente
+        const sortedCities = Object.entries(cityStats).sort((a, b) => a[0].localeCompare(b[0]));
+
+        sortedCities.forEach(([city, stats]) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:500;">${city}</td>
