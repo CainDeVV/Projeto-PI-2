@@ -69,12 +69,9 @@ class CadastroEquipamentoPage extends BaseFormPage {
         // Criação dos Campos
         const fieldUsuario = this.createSelectField('Usuário Responsável', 'usuario', opcoesUsuario, '-- Sem vínculo (Livre) --', true);
         const fieldSetor = this.createSelectField('Setor', 'setor', opcoesSetor, '-- Selecione o Setor --');
-        
         const fieldSala = this.createTextField('Sala / Localização', 'sala', 'Ex: Sala 104, Recepção');
-
         const fields = [];
         
-        // CORREÇÃO: O nome do campo deve ser 'numeroSerie' para bater com o Java
         if (type === 'computador') {
             fields.push(this.createTextField('Nome do PC', 'nome', 'Ex: PC-01 (Opcional)', null, true));
             fields.push(this.createTextField('Nº Série', 'numeroSerie', 'Ex: NPX-000', 'serial'));
@@ -148,7 +145,9 @@ class CadastroEquipamentoPage extends BaseFormPage {
         
         inputs.forEach(input => {
             if (input.name === 'setor') {
-                const setorId = data.setor ? data.setor.id : data.id_setor;
+                // CORREÇÃO AQUI: Prioriza id_setor, pois data.setor agora é uma string (nome)
+                const setorId = data.id_setor || (typeof data.setor === 'object' ? data.setor.id : null);
+                
                 if (setorId) {
                     input.value = setorId;
                     // Fallback visual
@@ -162,7 +161,8 @@ class CadastroEquipamentoPage extends BaseFormPage {
                 }
             } 
             else if (input.name === 'usuario') {
-                const userId = data.usuario ? data.usuario.id : data.id_usuario;
+                // CORREÇÃO AQUI: Prioriza id_usuario
+                const userId = data.id_usuario || (typeof data.usuario === 'object' ? data.usuario.id : null);
                 if (userId) input.value = userId;
             }
             // Preenche numeroSerie, modelo, sala, nome
