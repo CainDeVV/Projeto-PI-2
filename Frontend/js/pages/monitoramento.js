@@ -27,27 +27,34 @@ class MonitoramentoPage extends BaseListPage {
         // Aplica classe para layout tela cheia (se o CSS suportar)
         document.body.classList.add('layout-full-width');
         
-        await super.init(); // Renderiza o básico
+        await super.init(); // Renderiza Header e Sidebar
 
         // --- EXPOR FUNÇÕES GLOBAIS ---
         // Necessário para os botões onclick="gerarOS(...)" funcionarem dentro do HTML injetado
         window.gerarOS = (id, e) => this.handleGerarOS(id, e);
         window.resolverErro = (id, e) => this.handleResolver(id, e);
         window.verOS = (osId, e) => this.handleVerOS(osId, e);
+
+        const btnRefresh = document.getElementById('btn-refresh-data');
+        if (btnRefresh) {
+            btnRefresh.onclick = () => {
+                this.loadData(); // Recarrega apenas a tabela
+                showToast('Dados atualizados.', 'info'); // Dá um feedback visual
+            };
+        }
     }
 
-    // Sobrescrita do loadData para usar o filtro de erros ativos e Loading
+    // Sobrescrita do loadData para usar o filtro de erros ativos
     async loadData() {
-        this.showLoading(true); // Mostra "Carregando..."
+        // REMOVIDO: this.showLoading(true); <--- ISSO CAUSAVA O ERRO
         try {
             this.state.data = await this.service.getActiveErrors();
             this.renderTable(this.state.data);
         } catch (error) {
             console.error("Erro ao carregar monitoramento:", error);
             showToast("Erro ao carregar dados.", "error");
-        } finally {
-            this.showLoading(false); // Esconde "Carregando..."
-        }
+        } 
+        // REMOVIDO: finally { this.showLoading(false); } <--- ISSO TAMBÉM
     }
 
     // --- AÇÕES ---
