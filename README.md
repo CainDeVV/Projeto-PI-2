@@ -101,6 +101,12 @@ A utilização de containers garante que o sistema possa ser executado **indepen
 
 ---
 
+### Passo a Passo para Execução
+
+1. Clone o repositório:
+   
+git clone https://github.com/CainDeW/Projeto-PI-2.git
+
 ## Execução do Projeto com Docker
 
 ### Pré-requisitos
@@ -113,12 +119,13 @@ A utilização de containers garante que o sistema possa ser executado **indepen
 Como rodar:
 Tenha o docker instalado, abra o docker
 
-# Construir o sistema
+2. Construir o Docker
 docker-compose up --build -d
 
-# Acessar o site
+3. Acessar o site
 http://localhost:3000/
 
+4. Login e Senhas
 Admin:
 Login: 081.887.593-33
 Senha: 123
@@ -131,13 +138,8 @@ Usuário Comum:
 Login: 191.225.020-92
 Senha: 123
 
-# Derrubar o sistema
+5. Derrubar o sistema
 docker-compose down -v
 
 Ctrl+f5 para limpar o cache
 
-### Passo a Passo para Execução
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/CainDeW/Projeto-PI-2.git
