@@ -115,7 +115,7 @@ O uso de containers garante que o sistema possa ser executado **independentement
 
 #### 1. Clonar o repositório
 ```bash
-git clone https://github.com/CainDeW/Projeto-PI-2.git
+git clone https://github.com/CainDeVV/Projeto-PI-2.git
 cd Projeto-PI-2
 ```
 ### 2. Construir e subir o sistema
