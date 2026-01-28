@@ -41,7 +41,12 @@ export class BaseFormPage {
 
     async loadData(id) {
         try {
-            const item = await this.service.getById(id);
+            // Captura o 'type' da URL se ele existir (ex: ?id=1&type=impressora)
+            const typeHint = NavigationService.getQueryParam('type');
+
+            // Passamos o typeHint como segundo argumento para o Service
+            const item = await this.service.getById(id, typeHint);
+            
             if (item) {
                 this.fillForm(item);
                 this.updateUIForEdit();

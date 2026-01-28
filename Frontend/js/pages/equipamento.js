@@ -4,7 +4,7 @@ import { EquipamentoService } from '../services/equipamento.service.js';
 import { TABLE_COLUMNS, TAB_IDS } from '../config/equipamento.config.js';
 import { renderGenericTable } from '../components/tables.js';
 import { switchTab, resetTabs } from '../components/tabs.js';
-import { ROUTES } from '../services/navigation.service.js';
+import { ROUTES, NavigationService } from '../services/navigation.service.js'; // Importar NavigationService
 import { DOMUtils } from '../utils.js';
 
 class EquipamentoPage extends BaseListPage {
@@ -56,9 +56,14 @@ class EquipamentoPage extends BaseListPage {
                 if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         }
-        
-        // --- REMOVI O INTERVALO DE 20s PARA PARAR DE "PISCAR" A TELA ---
     }
+
+    // --- CORREÇÃO DO BUG DE EDIÇÃO (IDS DUPLICADOS) ---
+    handleEdit(item) {
+        // Envia o TIPO junto com o ID para diferenciar PC de Impressora
+        NavigationService.navigate(this.addPageUrl, { id: item.id, type: item.tipo });
+    }
+    // --------------------------------------------------
 
     setupClickOutside() {
         const topSection = document.querySelector('.top-list-section');
@@ -110,7 +115,6 @@ class EquipamentoPage extends BaseListPage {
     updateTabsState(item) {
         this.tabs.forEach(b => b.disabled = false);
         
-        // Lógica para alternar abas dependendo do tipo
         if (item.tipo === 'computador') {
             const tabOpcoes = document.getElementById(TAB_IDS.opcoes);
             if(tabOpcoes) tabOpcoes.disabled = true;
@@ -168,7 +172,6 @@ class EquipamentoPage extends BaseListPage {
             this.tabContent.innerHTML = '';
             this.tabContent.appendChild(wrapper);
             
-            // IMPORTANTE: Passamos 'impressora' para forçar a seleção correta
             renderGenericTable(listContainer, printers, TABLE_COLUMNS.inner, (row, printerItem) => {
                 this.selectItemById(printerItem.id, 'impressora');
             });
@@ -242,11 +245,9 @@ class EquipamentoPage extends BaseListPage {
         this.tabContent.appendChild(DOMUtils.create('div', { className: 'options-stack animate-fade' }, [btnTinta, btnJatos, btnReset]));
     }
 
-    // --- CORREÇÃO DE SELEÇÃO E IDs DUPLICADOS ---
     selectItemById(id, type = null) {
         let targetItem;
         
-        // 1. Tenta achar o item exato (pelo tipo, se informado)
         if (type) {
             targetItem = this.state.data.find(e => String(e.id) === String(id) && e.tipo === type);
         } else {
@@ -254,20 +255,14 @@ class EquipamentoPage extends BaseListPage {
         }
 
         if (targetItem) {
-            // 2. Lógica Visual: Tenta achar a linha na tabela
-            // Nota: Se houver IDs duplicados (PC 1 e Impressora 1), o querySelector vai pegar o primeiro (provavelmente PC).
-            // Isso é uma limitação visual do HTML, mas a LÓGICA abaixo garante que o painel de detalhes carregue o item certo.
             const rowElement = this.elements.list.querySelector(`.user-row[data-id="${id}"]`); 
             
-            // Se achou a linha, seleciona visualmente (pode destacar o PC se for duplicado, mas ok)
             if (rowElement) super.handleItemSelect(rowElement, targetItem);
             
-            // 3. Lógica de Dados: Força o carregamento do item correto nas abas
             this.state.selectedItem = targetItem;
             this.updateTabsState(targetItem);
             this.renderTabContent();
             
-            // Abre o painel
             if(this.splitContainer) this.splitContainer.classList.add('show-detail');
         }
     }

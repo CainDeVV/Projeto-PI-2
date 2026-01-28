@@ -159,6 +159,11 @@ export class HeaderComponent {
         if (state === 'dashboard') {
             // Não adiciona nada ao array buttons
         }
+        // 2. MONITORAMENTO
+        else if (state === 'monitoramento') {
+            // Adiciona botão de Refresh. A ação será bindada na página monitoramento.js
+            buttons.push(createBtn('btn-refresh', 'fas fa-sync-alt', 'Atualizar Dados', null));
+        }
         // 2. LISTAS PADRÃO
         else if (state === 'default' || state === 'sectorSelected') {
             buttons.push(createBtn('btn-back', 'fas fa-arrow-left', 'Voltar', actions.back));
