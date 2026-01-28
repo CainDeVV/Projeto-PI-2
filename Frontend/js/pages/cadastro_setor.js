@@ -3,6 +3,7 @@ import { BaseFormPage } from '../core/BaseFormPage.js';
 import { SetorService } from '../services/setor.service.js';
 import { showToast } from '../components/toast.js';
 import { NavigationService, ROUTES } from '../services/navigation.service.js';
+import { SidebarComponent } from '../components/sidebar.js'; // Importação necessária
 
 class CadastroSetorPage extends BaseFormPage {
     constructor() {
@@ -38,6 +39,8 @@ class CadastroSetorPage extends BaseFormPage {
     }
 
     async init() {
+        new SidebarComponent('tree-menu-container').render(await SetorService.getTreeStructure());
+        
         // Carrega Cidades usando IDs
         await this.loadCities();
         
@@ -132,8 +135,7 @@ class CadastroSetorPage extends BaseFormPage {
                     this.modalCity.classList.remove('active');
                     await this.loadCities();
                     
-                    // Como não sabemos o ID gerado sem retorno explícito no mock simples,
-                    // recarregamos e tentamos achar pelo nome para selecionar (UX)
+                    // UX: Tenta selecionar a recém criada pelo nome
                     const cities = await SetorService.getCitiesForDropdown();
                     const created = cities.find(c => c.nome === nome);
                     if(created) {
@@ -180,8 +182,11 @@ class CadastroSetorPage extends BaseFormPage {
                     await this.loadCompanies(cityId); 
                     
                     // UX: Tenta selecionar a empresa recém criada
-                    // (Lógica simplificada pois loadCompanies é assíncrono)
-                    // ... Usuário seleciona manualmente
+                    const companies = await SetorService.getCompaniesByCityId(cityId);
+                    const created = companies.find(c => c.nome === nome);
+                    if(created) {
+                        this.companySelect.value = created.id;
+                    }
                 } catch (err) {
                     console.error(err);
                     showToast('Erro ao salvar empresa.', 'error');
@@ -220,22 +225,23 @@ class CadastroSetorPage extends BaseFormPage {
 
         newForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const empresaVal = this.companySelect.value;
+            const empresaId = empresaVal ? parseInt(empresaVal) : null;
+
             const formData = {
                 nome: document.getElementById('nome').value.trim(),
                 localizacao: document.getElementById('localizacao').value.trim(),
                 observacao: document.getElementById('observacao').value.trim(),
-                // Importante: Service espera 'empresa' como ID para salvar
-                // (No SQL: id_empresa)
-                empresa: this.companySelect.value 
+                empresa: empresaId 
             };
 
-            if (!formData.nome || !this.citySelect.value || !formData.empresa) {
+            if (!formData.nome || !formData.empresa) {
                 return showToast('Preencha os campos obrigatórios (*)', 'error');
             }
 
             try {
                 if (this.currentId) {
-                    // Atualiza enviando ID da empresa
                     await this.service.update(this.currentId, formData);
                     showToast('Setor atualizado!', 'success');
                 } else {
@@ -259,16 +265,22 @@ class CadastroSetorPage extends BaseFormPage {
             document.getElementById('localizacao').value = data.localizacao || '';
             document.getElementById('observacao').value = data.observacao || '';
 
-            // Lógica de "Reverse Lookup": 
-            // O setor tem id_empresa. Precisamos achar a empresa para saber qual cidade selecionar.
-            const allCompanies = await SetorService.getCompaniesFull();
-            const myCompany = allCompanies.find(c => String(c.id) === String(data.id_empresa));
+            // Detecta o ID da empresa (se vier direto ou aninhado)
+            // Se o backend manda objeto completo: data.empresa.id
+            // Se o backend manda normalizado (não é o caso do getById padrão): data.id_empresa
+            const empresaId = (data.empresa && data.empresa.id) ? data.empresa.id : data.id_empresa;
 
-            if (myCompany) {
-                // Seleciona Cidade (ID)
-                this.citySelect.value = myCompany.id_cidade;
-                // Carrega Empresas daquela cidade e seleciona a empresa certa
-                await this.loadCompanies(myCompany.id_cidade, myCompany.id);
+            if (empresaId) {
+                // Buscamos todas as empresas para descobrir a cidade
+                const allCompanies = await SetorService.getCompaniesFull();
+                const myCompany = allCompanies.find(c => String(c.id) === String(empresaId));
+
+                if (myCompany) {
+                    // Seleciona Cidade (ID)
+                    this.citySelect.value = myCompany.id_cidade_vinculada;
+                    // Carrega Empresas daquela cidade e seleciona a empresa certa
+                    await this.loadCompanies(myCompany.id_cidade_vinculada, myCompany.id);
+                }
             }
             
             const title = document.querySelector('.form-header-title h2');

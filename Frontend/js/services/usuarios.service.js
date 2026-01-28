@@ -1,56 +1,61 @@
 /* js/services/usuarios.service.js */
 import { BaseService } from '../core/BaseService.js';
 import { EquipamentoService } from './equipamento.service.js';
-import { MockDatabase } from '../core/MockDatabase.js';
-import { APP_CONFIG } from '../config/constants.js'; // Importante para verificar o modo
 
 class UsuariosServiceClass extends BaseService {
     constructor() {
-        super('users', 'Usuário');
+        super('usuarios', 'Usuário');
     }
 
-    // --- LEITURA HIDRATADA (JOIN) ---
-    async getAll() {
-        // SE FOR API REAL: Retorna direto (Backend entrega DTO pronto)
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+    // Transforma os dados do Java em um formato simples para o HTML
+    _normalize(user) {
+        if (!user) return null;
+
+        // 1. Resolve o nome visual do setor
+        let nomeSetor = 'N/A';
+        if (user.setor) {
+            nomeSetor = user.setor.nome || user.setor;
+        } else if (user.nomeSetor) {
+            nomeSetor = user.nomeSetor;
         }
 
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
-        const users = await MockDatabase.get('users');
-        const sectors = await MockDatabase.get('sectors');
+        const setorId = (user.setor && user.setor.id) ? user.setor.id : user.id_setor;
 
-        return users.map(user => {
-            // Busca o setor onde o ID bate
-            const sectorObj = sectors.find(s => String(s.id) === String(user.id_setor));
+        return {
+            ...user,
+            id: user.id,
+            nome: user.nome,
+            email: user.email || user.login || '-',
+            tipo: user.tipo || user.tipoPerfil || 'Comum',
+            setor: nomeSetor,
             
-            return {
-                ...user,
-                // Campo 'setor' vira o Nome (para a coluna da tabela)
-                setor: sectorObj ? sectorObj.nome : 'N/A', 
-                // Mantém 'id_setor' original para edição
-                id_setor: user.id_setor
-            };
-        });
+            id_setor: setorId
+        };
     }
 
-    // --- ESCRITA (Padronizada via BaseService) ---
-    
-    async add(userData) {
-        // Recebe { nome, cpf, senha, tipo, id_setor }
-        // this.save lida com a decisão Mock vs API
-        return await this.save(userData);
+    // --- LEITURA LISTA (GetAll) ---
+    async getAll() {
+        try {
+            const response = await this.http.get();
+            return response.map(user => this._normalize(user));
+        } catch (error) {
+            console.error("Erro ao buscar usuários:", error);
+            return [];
+        }
     }
 
-    async update(id, userData) {
-        // Garante envio do ID para ser tratado como PUT
-        return await this.save({ ...userData, id });
+    // --- LEITURA ÚNICA (GetById) ---
+    async getById(id) {
+        try {
+            const user = await this.http.get(id);
+            return this._normalize(user);
+        } catch (error) {
+            console.error("Erro ao buscar usuário por ID:", error);
+            return null;
+        }
     }
 
-    // --- MANUTENÇÃO / FILTROS ---
-    
     async getBySector(sectorName) {
-        // Filtra os usuários que, após a hidratação, possuem esse nome de setor
         const all = await this.getAll();
         return all.filter(u => u.setor === sectorName);
     }
@@ -62,12 +67,8 @@ class UsuariosServiceClass extends BaseService {
 
         const allEquipments = await EquipamentoService.getAll();
         
-        // Verifica se existe algum equipamento vinculado a este usuário.
-        // Checagem Híbrida:
-        // 1. Pelo Nome (eq.usuario) -> Como o Mock atual funciona
-        // 2. Pelo ID (eq.id_usuario) -> Como o Banco Relacional funciona
         const hasEquipment = allEquipments.some(eq => 
-            eq.usuario === userToDelete.nome || 
+            (eq.usuario && eq.usuario === userToDelete.nome) || 
             String(eq.id_usuario) === String(id)
         );
 

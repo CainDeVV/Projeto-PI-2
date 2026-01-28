@@ -1,140 +1,136 @@
 /* js/services/os.service.js */
 import { BaseService } from '../core/BaseService.js';
-import { MockDatabase } from '../core/MockDatabase.js';
 import { AuthService } from './auth.service.js';
-import { APP_CONFIG } from '../config/constants.js'; // Importante para checar o modo
+import { APP_CONFIG } from '../config/constants.js'; 
 
 class OsServiceClass extends BaseService {
     constructor() {
-        super('os', 'Ordem de Serviço');
+        super('ordens-servico', 'Ordem de Serviço'); 
     }
 
-    // --- LEITURA HIDRATADA (JOIN) ---
-    async getAll() {
-        // SE FOR API REAL: O Backend já deve retornar os dados com joins feitos (DTO)
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+    _mapToFrontend(os) {
+        const setorNome = os.setor ? os.setor.nome : 'N/A';
+        let equipName = 'Genérico';
+        let equipSala = '-';
+
+        if (os.computador) {
+            equipName = `PC - ${os.computador.modelo}`;
+            equipSala = os.computador.sala;
+        } else if (os.impressora) {
+            equipName = `IMP - ${os.impressora.modelo}`;
+            equipSala = os.impressora.sala;
         }
 
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
-        const osList = await MockDatabase.get('os');
-        const sectors = await MockDatabase.get('sectors');
-        const equipments = await MockDatabase.get('equipments');
-        const users = await MockDatabase.get('users');
-
-        return osList.map(os => {
-            // 1. Resolver Setor
-            const sec = sectors.find(s => String(s.id) === String(os.id_setor));
+        return {
+            ...os,
+            id: os.id,
             
-            // 2. Resolver Equipamento
-            const equipId = os.id_computador || os.id_impressora || os.equipamentoId;
-            const equip = equipments.find(e => String(e.id) === String(equipId));
+            // Visuais
+            setor: setorNome,
+            equipamentoName: equipName,
+            equipamentoSala: equipSala,
+            solicitante: os.solicitante ? os.solicitante.nome : 'Desconhecido',
+            responsavel: os.responsavel ? os.responsavel.nome : '-',
+
+            // Formulário (Edição)
+            descricao: os.descricaoProblema || os.descricao,
             
-            // 3. RESOLVER SOLICITANTE (Quem pediu a O.S.)
-            const solUser = users.find(u => String(u.id) === String(os.id_usuario_solicitante));
-            const nomeSolicitante = solUser ? solUser.nome : (os.solicitante || 'Usuário Desconhecido');
+            // IDs para os <select>
+            id_setor: os.setor ? os.setor.id : null,
+            id_usuario_solicitante: os.solicitante ? os.solicitante.id : null,
+            id_usuario_responsavel: os.responsavel ? os.responsavel.id : null,
+            id_computador: os.computador ? os.computador.id : null,
+            id_impressora: os.impressora ? os.impressora.id : null
+        };
+    }
 
-            // 4. RESOLVER RESPONSÁVEL (Técnico que está atendendo)
-            const tecUser = users.find(u => String(u.id) === String(os.id_usuario_responsavel));
-            const nomeTecnico = tecUser ? tecUser.nome : '-';
+    // --- LEITURAS ---
+    async getAll() {
+        try {
+            const list = await this.http.get();
+            return list.map(os => this._mapToFrontend(os));
+        } catch (e) { return []; }
+    }
 
-            return {
-                ...os,
-                id: os.id,
-                
-                // Colunas da Tabela
-                setor: sec ? sec.nome : 'N/A',
-                equipamentoName: equip 
-                    ? `${equip.tipo === 'computador' ? 'PC' : 'IMP'} - ${equip.modelo}` 
-                    : (os.equipamentoName || 'Genérico'),
-                
-                equipamentoSala: equip && equip.sala ? equip.sala : '-',
-                descricao: os.descricao_problema || os.descricao,
-                
-                solicitante: nomeSolicitante,
-                responsavel: nomeTecnico,
-                
-                dataAbertura: os.data_abertura || os.dataAbertura,
-                dataFechamento: os.data_fechamento || os.dataFechamento,
-                
-                status: os.status,
-                solucao: os.solucao
-            };
-        });
+    async getById(id) {
+        try {
+            const os = await this.http.get(id);
+            return this._mapToFrontend(os);
+        } catch (e) { return null; }
     }
 
     // --- ESCRITA ---
-    async add(osData) {
+    async save(data) {
         const payload = {
-            ...osData,
-            descricao_problema: osData.descricao,
-            data_abertura: osData.dataAbertura,
-            status: 'Aberto',
+            id: data.id,
+            titulo: "Chamado via Sistema",
+            descricaoProblema: data.descricao || data.descricaoProblema,
+            prioridade: data.prioridade || "Media",
+            status: data.status || "Aberto",
             
-            // IDs
-            id_setor: osData.id_setor,
-            id_usuario_solicitante: osData.id_usuario_solicitante,
-            id_usuario_responsavel: null, // Nova OS começa sem técnico
+            dataAbertura: new Date().toISOString(),
+            dataFechamento: data.dataFechamento,
+            solucao: data.solucao,
             
-            id_computador: osData.id_computador,
-            id_impressora: osData.id_impressora
+            setor: { id: parseInt(data.id_setor || 0) },
+            solicitante: { id: parseInt(data.id_usuario_solicitante || 0) }
         };
-        
-        // CORREÇÃO: Usa this.save() para abstrair Mock/API
-        return await this.save(payload);
-    }
 
-    async update(id, osData) {
-        const payload = { ...osData };
-        
-        if(osData.descricao) payload.descricao_problema = osData.descricao;
-        if(osData.dataAbertura) payload.data_abertura = osData.dataAbertura;
-        if(osData.dataFechamento) payload.data_fechamento = osData.dataFechamento;
-        
-        if(osData.id_usuario_responsavel !== undefined) {
-            payload.id_usuario_responsavel = osData.id_usuario_responsavel;
+        // Opcionais
+        if (data.id_usuario_responsavel) {
+            payload.responsavel = { id: parseInt(data.id_usuario_responsavel) };
         }
 
-        // CORREÇÃO: Usa this.save() e garante o ID no objeto
-        return await this.save({ ...payload, id });
+        // Lógica PC vs Impressora
+        if (data.id_computador) {
+            payload.computador = { id: parseInt(data.id_computador) };
+            payload.impressora = null;
+        } else if (data.id_impressora) {
+            payload.impressora = { id: parseInt(data.id_impressora) };
+            payload.computador = null;
+        }
+
+        return await super.save(payload); 
     }
 
+    // Helpers
+    async add(d) { return this.save(d); }
+    async update(id, d) { return this.save({ ...d, id }); }
+
+    //  AÇÃO ESPECIAL: FECHAR/REABRIR 
     async toggleStatus(id) {
         const item = await this.getById(id);
-        if (!item) return null;
+        if(!item) return;
         
         const novoStatus = item.status === 'Aberto' ? 'Fechado' : 'Aberto';
-        const closeDate = novoStatus === 'Fechado' ? new Date().toISOString() : null;
         
-        let updateData = {
-            status: novoStatus, 
-            data_fechamento: closeDate
-        };
-
-        // Lógica: Ao FECHAR, o usuário logado vira o RESPONSÁVEL (se já não tiver um)
         if (novoStatus === 'Fechado') {
             const currentUser = AuthService.getUser();
-            updateData.solucao = `Concluído por ${currentUser ? currentUser.nome : 'Sistema'}.`;
             
-            if (!item.id_usuario_responsavel && currentUser) {
-                updateData.id_usuario_responsavel = currentUser.id;
-            }
-        } else {
-            updateData.solucao = ''; 
-        }
 
-        await this.update(id, updateData);
-        return { ...item, ...updateData };
+            const url = `${APP_CONFIG.API_BASE_URL}/${this.endpoint}/${id}/finalizar`;
+
+            await fetch(url, {
+                method: 'PUT',
+                headers: this.http._getHeaders(),
+                body: JSON.stringify({ 
+                    solucao: `Fechado via Painel por ${currentUser ? currentUser.nome : 'Sistema'}` 
+                })
+            });
+
+            this._logAction('UPDATE', `Finalizou a O.S. #${id}`);
+
+        } else {
+            await this.save({ 
+                id, status: 'Aberto', dataFechamento: null, solucao: null,
+                id_setor: item.id_setor, id_usuario_solicitante: item.id_usuario_solicitante
+            });
+        }
     }
 
-    async getByUser(userIdOrName) {
+    async getByUser(name) {
         const all = await this.getAll();
-        // Filtra onde o usuário é o solicitante OU o responsável
-        return all.filter(os => 
-            String(os.id_usuario_solicitante) === String(userIdOrName) || 
-            String(os.id_usuario_responsavel) === String(userIdOrName) ||
-            os.solicitante === userIdOrName 
-        );
+        return all.filter(os => os.solicitante === name || os.responsavel === name);
     }
 }
 

@@ -1,8 +1,8 @@
 /* js/core/BaseFormPage.js */
 import { HeaderComponent } from '../components/header.js';
 import { SidebarComponent } from '../components/sidebar.js';
-import { setupInputMasks, InputManager } from '../components/inputs.js'; // Adicionei InputManager aqui se faltar
-import { treeStructure } from '../database.js';
+import { setupInputMasks, InputManager } from '../components/inputs.js';
+import { SetorService } from '../services/setor.service.js'; // <--- CORREÇÃO
 import { showToast } from '../components/toast.js';
 import { NavigationService } from '../services/navigation.service.js';
 
@@ -12,37 +12,46 @@ export class BaseFormPage {
         this.service = service;
         this.redirectUrl = redirectUrl;
         this.resourceName = resourceName;
-        
         this.titlePage = document.querySelector('.form-header-title h2');
         this.btnSubmit = document.querySelector('.btn-submit'); 
-        
         this.editId = NavigationService.getQueryParam('id');
-
         this.header = new HeaderComponent('app-header');
         this.sidebar = new SidebarComponent('tree-menu-container');
     }
 
-    init() {
+    async init() {
         this.header.render(() => NavigationService.navigate(this.redirectUrl), 'form');
         this.header.updateButtons('only-back');
-        this.sidebar.render(treeStructure, () => {}, false);
+        
+        // Carrega Sidebar da API
+        try {
+            const treeData = await SetorService.getTreeStructure();
+            this.sidebar.render(treeData, () => {}, false);
+        } catch (e) {
+            this.sidebar.render([], () => {}, false);
+        }
 
         setupInputMasks();
         this.setupListeners();
 
         if (this.editId) {
-            this.loadData(this.editId);
+            await this.loadData(this.editId);
         }
     }
 
     async loadData(id) {
-        const item = await this.service.getById(id);
-        if (item) {
-            this.fillForm(item);
-            this.updateUIForEdit();
-        } else {
-            showToast('Item não encontrado.', 'error');
-            NavigationService.navigate(this.redirectUrl);
+        try {
+            const item = await this.service.getById(id);
+            if (item) {
+                this.fillForm(item);
+                this.updateUIForEdit();
+            } else {
+                showToast('Item não encontrado.', 'error');
+                NavigationService.navigate(this.redirectUrl);
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Erro ao carregar dados.', 'error');
         }
     }
 
@@ -58,25 +67,18 @@ export class BaseFormPage {
 
     updateUIForEdit() {
         if(this.titlePage) this.titlePage.innerText = `Alterar ${this.resourceName}`;
-        if(this.btnSubmit) {
-            this.btnSubmit.innerHTML = 'SALVAR ALTERAÇÕES <i class="fas fa-check"></i>';
-        }
+        if(this.btnSubmit) this.btnSubmit.innerHTML = 'SALVAR ALTERAÇÕES <i class="fas fa-check"></i>';
     }
 
     setupListeners() {
-        if (this.form) {
-            this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-        }
+        if (this.form) this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         this.addExtraListeners();
     }
 
     async handleSubmit(e) {
         e.preventDefault();
-        
-        // 1. Validação (Hook opcional dos filhos)
         if (!this.validate()) return;
 
-        // 2. Feedback Visual
         const originalContent = this.btnSubmit ? this.btnSubmit.innerHTML : 'Salvar';
         if(this.btnSubmit) {
             this.btnSubmit.disabled = true;
@@ -86,27 +88,19 @@ export class BaseFormPage {
         try {
             const formData = new FormData(this.form);
             const dataObj = Object.fromEntries(formData.entries());
+            if (this.editId) dataObj.id = this.editId;
 
-            if (this.editId) {
-                dataObj.id = this.editId;
-            }
-
-            // --- OTIMIZAÇÃO AQUI (HOOK) ---
-            // Pega dados extras definidos no filho e mistura com os dados do form
             const extraData = this.getExtraData();
             Object.assign(dataObj, extraData);
 
             await this.service.save(dataObj);
             
-            const action = this.editId ? 'atualizado' : 'cadastrado';
-            showToast(`${this.resourceName} ${action} com sucesso!`, 'success');
-            
-            NavigationService.navigate(this.redirectUrl);
+            showToast(`${this.resourceName} salvo com sucesso!`, 'success');
+            setTimeout(() => NavigationService.navigate(this.redirectUrl), 500);
             
         } catch (error) {
             console.error(error);
-            showToast('Erro ao salvar dados.', 'error');
-            
+            showToast('Erro ao salvar: ' + (error.message || ''), 'error');
             if(this.btnSubmit) {
                 this.btnSubmit.disabled = false;
                 this.btnSubmit.innerHTML = originalContent;
@@ -114,14 +108,8 @@ export class BaseFormPage {
         }
     }
 
-    // --- HOOKS (Métodos vazios que os filhos podem sobrescrever) ---
-    
     validate() { return true; } 
-    
     afterFillForm(data) {} 
-    
     addExtraListeners() {} 
-    
-    // Novo Hook: Retorna objeto com dados extras para salvar
     getExtraData() { return {}; }
 }

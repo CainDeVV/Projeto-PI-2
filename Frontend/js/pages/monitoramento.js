@@ -14,28 +14,40 @@ class MonitoramentoPage extends BaseListPage {
                 emptyStateId: 'empty-state',
                 service: ErrorLogService, 
                 tableConfig: MONITOR_TABLE_CONFIG,
-                pageName: 'monitoramento',
+                pageName: 'Monitoramento',
                 addPageUrl: null, 
                 deleteMessageFn: null
             },
-            { canAdd: false, canSelect: true, showSidebarTree: false }
+            // canSelect: false -> Desativa checkboxes (não configuramos coluna pra isso)
+            { canAdd: false, canSelect: false, showSidebarTree: false }
         );
     }
 
     async init() {
+        // Aplica classe para layout tela cheia (se o CSS suportar)
         document.body.classList.add('layout-full-width');
-        await super.init(); // Renderiza Header e Sidebar
+        
+        await super.init(); // Renderiza o básico
 
         // --- EXPOR FUNÇÕES GLOBAIS ---
+        // Necessário para os botões onclick="gerarOS(...)" funcionarem dentro do HTML injetado
         window.gerarOS = (id, e) => this.handleGerarOS(id, e);
         window.resolverErro = (id, e) => this.handleResolver(id, e);
         window.verOS = (osId, e) => this.handleVerOS(osId, e);
     }
 
-    // Sobrescrita do loadData para usar o método específico getActiveErrors
+    // Sobrescrita do loadData para usar o filtro de erros ativos e Loading
     async loadData() {
-        this.state.data = await this.service.getActiveErrors();
-        this.renderTable(this.state.data);
+        this.showLoading(true); // Mostra "Carregando..."
+        try {
+            this.state.data = await this.service.getActiveErrors();
+            this.renderTable(this.state.data);
+        } catch (error) {
+            console.error("Erro ao carregar monitoramento:", error);
+            showToast("Erro ao carregar dados.", "error");
+        } finally {
+            this.showLoading(false); // Esconde "Carregando..."
+        }
     }
 
     // --- AÇÕES ---
@@ -56,31 +68,32 @@ class MonitoramentoPage extends BaseListPage {
         if(event) event.stopPropagation();
 
         showConfirmModal(
-            'Resolver Erro',
+            'Resolver Incidente',
             'Confirma que este problema foi resolvido sem necessidade de abrir um chamado?',
             async () => {
                 try {
-                    // --- CORREÇÃO: Usa o Service, não o LocalStorage direto ---
                     const success = await this.service.resolveError(errorId);
                     
-                    if (success || success === undefined) { // undefined se a API retornar void
+                    if (success) {
                         showToast('Erro marcado como resolvido!', 'success');
-                        this.loadData(); // Recarrega a tabela
+                        this.loadData(); // Recarrega a tabela para sumir com o item
                     } else {
                         showToast('Não foi possível resolver o erro.', 'error');
                     }
                 } catch (error) {
                     console.error(error);
-                    showToast('Erro ao processar solicitação.', 'error');
+                    showToast('Erro de comunicação com o servidor.', 'error');
                 }
             }
         );
     }
 
-    // Clique na linha (apenas navega se não clicou nos botões)
+    // Clique na linha (Opcional: Leva para o equipamento)
     handleItemSelect(rowElement, item) {
-        if (item.id_equipamento_alvo) {
-            NavigationService.navigate(ROUTES.EQUIPMENT_LIST, { select: item.id_equipamento_alvo });
+        // Só navega se tiver equipamento alvo vinculado ao erro
+        if (item.id_equipamento_alvo || item.equipamentoId) {
+            const equipId = item.id_equipamento_alvo || item.equipamentoId;
+            NavigationService.navigate(ROUTES.EQUIPMENT_LIST, { select: equipId });
         }
     }
 }

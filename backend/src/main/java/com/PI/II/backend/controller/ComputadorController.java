@@ -2,6 +2,7 @@ package com.PI.II.backend.controller;
 
 import com.PI.II.backend.model.Computador;
 import com.PI.II.backend.repository.ComputadorRepository;
+import com.PI.II.backend.repository.OrdemServicoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,11 +11,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/computadores")
+@CrossOrigin(origins = "*") // 1. IMPORTANTE: Libera o acesso do Front
 public class ComputadorController {
 
     @Autowired
     private ComputadorRepository computadorRepo;
 
+    @Autowired
+    private OrdemServicoRepository osRepo; // 2. IMPORTANTE: Para validar exclusão
+
+    // LISTAR 
     @GetMapping
     public List<Computador> listar(
             @RequestParam(required = false) String status,
@@ -30,6 +36,7 @@ public class ComputadorController {
         return computadorRepo.findAll();
     }
 
+    // CADASTRAR 
     @PostMapping
     public ResponseEntity<?> salvar(@RequestBody Computador pc) {
         // Validação: Número de Série único
@@ -41,9 +48,32 @@ public class ComputadorController {
         if (pc.getStatus() == null || pc.getStatus().isEmpty()) {
             pc.setStatus("Online");
         }
+        
+        // Garante que o Setor foi enviado (Front as vezes manda nulo)
+        if (pc.getSetor() == null) {
+             return ResponseEntity.badRequest().body("Erro: É obrigatório selecionar um Setor.");
+        }
 
         Computador novoPc = computadorRepo.save(pc);
         return ResponseEntity.ok(novoPc);
+    }
+
+    // 3. EDITAR 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Computador dados) {
+        return computadorRepo.findById(id).map(pc -> {
+            if (dados.getNome() != null) pc.setNome(dados.getNome());
+            if (dados.getModelo() != null) pc.setModelo(dados.getModelo());
+            if (dados.getNumeroSerie() != null) pc.setNumeroSerie(dados.getNumeroSerie());
+            if (dados.getSala() != null) pc.setSala(dados.getSala());
+            if (dados.getSetor() != null) pc.setSetor(dados.getSetor()); 
+            if (dados.getStatus() != null) pc.setStatus(dados.getStatus());
+            if (dados.getSetor() != null) pc.setSetor(dados.getSetor());
+            pc.setUsuario(dados.getUsuario());
+
+            Computador atualizado = computadorRepo.save(pc);
+            return ResponseEntity.ok(atualizado);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // BUSCAR POR ID
@@ -54,13 +84,21 @@ public class ComputadorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // EXCLUIR
+    // EXCLUIR 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> excluir(@PathVariable Long id) {
-        if (!computadorRepo.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        computadorRepo.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return computadorRepo.findById(id).map(pc -> {
+            
+            // VERIFICAÇÃO DE SEGURANÇA: Se tiver O.S. Aberta, não deixa apagar
+            boolean temOsAberta = osRepo.existsByComputadorAndStatus(pc, "Aberto");
+            
+            if (temOsAberta) {
+                 return ResponseEntity.badRequest().body("Erro: Não é possível excluir um computador com O.S. Aberta!");
+            }
+
+            computadorRepo.delete(pc);
+            return ResponseEntity.noContent().build();
+            
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

@@ -1,122 +1,262 @@
 /* js/services/equipamento.service.js */
 import { BaseService } from '../core/BaseService.js';
-import { MockDatabase } from '../core/MockDatabase.js';
-import { APP_CONFIG } from '../config/constants.js'; // Importante para verificar o modo
+import { APP_CONFIG } from '../config/constants.js'; 
 
 class EquipamentoServiceClass extends BaseService {
     constructor() {
-        super('equipments', 'Equipamento');
+        super('equipments', 'Equipamento'); 
+        this.apiPc = `${APP_CONFIG.API_BASE_URL}/computadores`;
+        this.apiImp = `${APP_CONFIG.API_BASE_URL}/impressoras`;
     }
 
-    // --- LEITURA HIDRATADA (JOIN) ---
+    // --- LEITURA (GET) ---
     async getAll() {
-        // SE FOR API REAL: O Backend já deve retornar os dados com joins feitos (DTO)
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
+            try {
+                const [pcs, imps] = await Promise.all([
+                    this.fetchJson(this.apiPc),
+                    this.fetchJson(this.apiImp)
+                ]);
+                const pcsTyped = pcs.map(p => this._normalize(p, 'computador'));
+                const impsTyped = imps.map(i => this._normalize(i, 'impressora'));
+                return [...pcsTyped, ...impsTyped];
+            } catch (error) {
+                console.error("Erro busca:", error);
+                return [];
+            }
         }
+        return []; 
+    }
 
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
-        const equips = await MockDatabase.get('equipments');
-        const sectors = await MockDatabase.get('sectors');
-        const users = await MockDatabase.get('users');
+    async getById(id) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            try {
+                // Tenta buscar como PC
+                const pc = await this.fetchJson(`${this.apiPc}/${id}`);
+                return this._normalize(pc, 'computador');
+            } catch (e) {
+                try {
+                    // Se falhar, tenta buscar como Impressora
+                    const imp = await this.fetchJson(`${this.apiImp}/${id}`);
+                    return this._normalize(imp, 'impressora');
+                } catch (e2) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
 
-        const hydratedData = equips.map(eq => {
-            const sec = sectors.find(s => String(s.id) === String(eq.id_setor));
+    // --- SALVAR (ROTEADOR) ---
+    async save(data) {
+        if (data.id) {
+            return this.update(data.id, data);
+        } else {
+            return this.add(data);
+        }
+    }
+
+    // --- CRIAR (POST) ---
+    async add(data) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const url = data.tipo === 'impressora' ? this.apiImp : this.apiPc;
             
-            // Resolve Usuário
-            let userName = eq.usuario || '-'; 
-            if (eq.id_usuario) {
-                const u = users.find(user => String(user.id) === String(eq.id_usuario));
-                if (u) userName = u.nome;
+            // LIMPEZA FINAL
+            const payload = this._cleanPayload(data);
+
+            const result = await this.fetchJson(url, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            // LOG DA AÇÃO
+            this._logAction('CREATE', `Criou ${data.tipo}: ${data.modelo}`);
+            
+            return result;
+        }
+        return {};
+    }
+
+    // --- ATUALIZAR (PUT) ---
+    async update(id, data) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            const url = data.tipo === 'impressora' ? `${this.apiImp}/${id}` : `${this.apiPc}/${id}`;
+            
+            // LIMPEZA FINAL
+            const payload = this._cleanPayload(data);
+            payload.id = parseInt(id, 10);
+
+            const result = await this.fetchJson(url, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+
+            // LOG DA AÇÃO
+            this._logAction('UPDATE', `Editou ${data.tipo}: ${data.modelo}`);
+
+            return result;
+        }
+        return {};
+    }
+
+    // --- EXCLUIR (DELETE) ---
+    async delete(id) {
+        if (!APP_CONFIG.USE_MOCK_DATA) {
+            let endpoint = `${this.apiPc}/${id}`;
+            let tipoApagado = 'Computador';
+            
+            let response = await fetch(endpoint, { method: 'DELETE', headers: this.getHeaders() });
+
+            if (response.status === 404) {
+                endpoint = `${this.apiImp}/${id}`;
+                tipoApagado = 'Impressora';
+                response = await fetch(endpoint, { method: 'DELETE', headers: this.getHeaders() });
             }
 
-            return {
-                ...eq,
-                // Nome para exibir na tabela
-                setor: sec ? sec.nome : 'N/A',
-                // Nome do usuário resolvido
-                usuario: userName,
-                
-                // IDs mantidos para formulários
-                id_setor: eq.id_setor,
-                id_usuario: eq.id_usuario
-            };
-        });
+            if (!response.ok) {
+                const errorText = await response.text(); 
+                throw new Error(errorText || 'Erro ao excluir.');
+            }
 
-        // Ordenação (Computadores primeiro)
-        return hydratedData.sort((a, b) => {
-            if (a.tipo === b.tipo) return 0;
-            return a.tipo === 'computador' ? -1 : 1;
-        });
+            // LOG DA AÇÃO
+            this._logAction('DELETE', `Excluiu ${tipoApagado} ID ${id}`);
+
+            return true;
+        }
+        return true;
     }
 
-    // --- ESCRITA ---
-    async add(data) {
-        return await this.save(data); // Usa o método save do BaseService
+    // --- FUNÇÃO DE LIMPEZA (JSON FRONT -> BACK) ---
+    _cleanPayload(data) {
+        const clean = { ...data };
+        delete clean.tipo; 
+        if (clean.id) clean.id = parseInt(clean.id, 10);
+        
+        // Se vier campo 'serie' (do form), converte para 'numeroSerie' (pro Java)
+        if (clean.serie) {
+            clean.numeroSerie = clean.serie;
+            delete clean.serie;
+        }
+        
+        if (clean.setor && (typeof clean.setor === 'string' || typeof clean.setor === 'number')) {
+            clean.setor = { id: parseInt(clean.setor, 10) };
+        } else if (clean.setor && clean.setor.id) {
+            clean.setor = { id: parseInt(clean.setor.id, 10) };
+        }
+
+        if (clean.usuario === "" || clean.usuario === "0" || clean.usuario === 0) {
+            clean.usuario = null;
+        } else if (clean.usuario && (typeof clean.usuario === 'string' || typeof clean.usuario === 'number')) {
+            clean.usuario = { id: parseInt(clean.usuario, 10) };
+        } else if (clean.usuario && clean.usuario.id) {
+            clean.usuario = { id: parseInt(clean.usuario.id, 10) };
+        } else {
+            clean.usuario = null;
+        }
+
+        return clean;
     }
 
-    async update(id, data) {
-        // Garante que o ID esteja no objeto para o save() identificar que é update
-        return await this.save({ ...data, id });
-    }
-
-    // --- FILTROS ---
-    async getBySector(sectorName) {
-        const data = await this.getAll();
-        return data.filter(e => e.setor === sectorName);
-    }
-
-    async getPrintersByParentId(parentId) {
-        const data = await this.getAll();
-        return data.filter(e => e.tipo === 'impressora' && String(e.connectedTo) === String(parentId));
-    }
-
-    // --- HISTÓRICO DE ERROS ---
-    async getErrorHistory(equipId) {
-        // Se for API Real, chamaria algo como /api/equipments/{id}/errors
+    // --- MÉTODOS EXTRAS ---
+    async getPrintersByParentId(computadorId) {
         if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.http.get(`${this.endpoint}/${equipId}/errors`); 
-            // Nota: Acessei this.http.http porque o wrapper BaseService encapsula o HttpClient
-            // Mas idealmente o HttpClient teria um método request genérico.
-            // Para simplificar aqui, vamos assumir que o MockDatabase lida com isso.
+            try {
+                const imps = await this.fetchJson(`${this.apiImp}?computadorId=${computadorId}`);
+                return imps.map(i => this._normalize(i, 'impressora'));
+            } catch (error) { return []; }
         }
-
-        const allErrors = await MockDatabase.get('log_erros');
-        
-        return allErrors.filter(err => 
-            String(err.id_computador) === String(equipId) || 
-            String(err.id_impressora) === String(equipId)
-        ).sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+        return [];
     }
 
-    // --- VERIFICAÇÕES DE INTEGRIDADE ---
+    async getErrorHistory(equipId) {
+        try {
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/log_erros`, { headers: this.getHeaders() });
+            if (!res.ok) return [];
+            
+            const allErrors = await res.json();
+            
+            return allErrors.filter(err => 
+                (err.computador && String(err.computador.id) === String(equipId)) || 
+                (err.impressora && String(err.impressora.id) === String(equipId))
+            ).sort((a, b) => new Date(b.dataHora) - new Date(a.dataHora));
+            
+        } catch (e) { return []; }
+    }
+
     async checkDependencies(id) {
-        const childPrinters = await this.getPrintersByParentId(id);
-        
-        if (childPrinters.length > 0) {
-            return {
-                allowed: false,
-                message: `Possui ${childPrinters.length} impressora(s) conectada(s).`
+        return { allowed: true }; 
+    }
+
+    // --- UTILITÁRIOS (LOG) ---
+    _logAction(action, details) {
+        try {
+            const user = JSON.parse(localStorage.getItem('sys_user') || '{}');
+            const logData = {
+                usuario: { id: user.id || 1 }, 
+                acao: action,
+                recurso: 'Equipamento', 
+                detalhes: details,
+                dataHora: new Date().toISOString(),
+                usuarioNome: user.nome || 'Sistema'
             };
+            
+            fetch(`${APP_CONFIG.API_BASE_URL}/logs`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(logData)
+            }).catch(e => console.warn('Falha ao gravar log (Network):', e));
+        } catch (e) {
+            console.warn('Erro ao preparar log (JS):', e);
         }
+    }
 
-        // Import dinâmico para evitar dependência circular
-        const { OsService } = await import('./os.service.js');
-        const allOs = await OsService.getAll();
-        
-        const hasOpenOs = allOs.some(os => 
-            (String(os.id_computador) === String(id) || String(os.id_impressora) === String(id)) 
-            && os.status === 'Aberto'
-        );
+    // --- CORREÇÃO DO MAPEAMENTO (JAVA -> TABLE) ---
+    _normalize(item, tipo) {
+        // Garante leitura segura dos objetos
+        const nomeUsuario = (item.usuario && item.usuario.nome) ? item.usuario.nome : '-';
+        const nomeSetor = (item.setor && item.setor.nome) ? (item.setor.nome) : '-';
 
-        if (hasOpenOs) {
-            return {
-                allowed: false,
-                message: 'Existe O.S. ABERTA para este equipamento.'
-            };
+        return {
+            ...item,
+            id: item.id,
+            tipo: tipo,
+            
+            // 1. CORREÇÃO: Mapeia 'numeroSerie' (do Java) para 'serie' (que a tabela espera)
+            serie: item.numeroSerie || item.serie || '-',
+            
+            // 2. CORREÇÃO: Mapeia o objeto usuário para string
+            usuario: nomeUsuario,
+            setor: nomeSetor,
+            
+            // Dados Visuais
+            modelo: item.modelo,
+            sala: item.sala || '-',
+            
+            // IDs para edição
+            id_setor: item.setor ? item.setor.id : null,
+            id_usuario: item.usuario ? item.usuario.id : null
+        };
+    }
+
+    async fetchJson(url, options = {}) {
+        const res = await fetch(url, {
+            ...options,
+            headers: { ...this.getHeaders(), ...options.headers }
+        });
+        if (!res.ok) {
+            if (res.status === 404) throw new Error('Not Found');
+            const text = await res.text();
+            throw new Error(text || `Erro API: ${res.status}`);
         }
+        return res.json();
+    }
 
-        return { allowed: true };
+    getHeaders() {
+        const token = localStorage.getItem('sys_token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
     }
 }
 

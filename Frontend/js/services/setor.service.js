@@ -1,174 +1,53 @@
 /* js/services/setor.service.js */
 import { BaseService } from '../core/BaseService.js';
-import { MockDatabase } from '../core/MockDatabase.js'; 
-import { APP_CONFIG } from '../config/constants.js'; // Importante para checar o modo
+import { APP_CONFIG } from '../config/constants.js';
 
 class SetorServiceClass extends BaseService {
-    constructor() { super('sectors', 'Setor'); }
+    constructor() { super('setores', 'Setor'); }
 
-    // --- LEITURA (JOIN) ---
+    // --- 1. LEITURA PRINCIPAL (API) ---
     async getAll() {
-        // SE FOR API REAL: Retorna direto (Backend deve entregar o DTO hidratado)
-        if (!APP_CONFIG.USE_MOCK_DATA) {
-            return this.http.get();
-        }
-
-        // --- LÓGICA DO MOCK (JOIN MANUAL) ---
-        const sectors = await MockDatabase.get('sectors');
-        const companies = await MockDatabase.get('companies');
-        const cities = await MockDatabase.get('cities');
-
-        return sectors.map(sec => {
-            const comp = companies.find(c => String(c.id) === String(sec.id_empresa));
-            const city = comp ? cities.find(c => String(c.id) === String(comp.id_cidade)) : null;
-
-            return {
+        try {
+            const response = await this.http.get(); 
+            return response.map(sec => ({
                 ...sec,
-                nome_empresa: comp ? comp.nome : 'N/A',
-                nome_cidade: city ? city.nome : 'N/A',
-                // Compatibilidade com componentes que esperam 'empresa' e 'cidade' como nomes
-                empresa: comp ? comp.nome : 'N/A',
-                cidade: city ? city.nome : 'N/A'
-            };
+                nome: sec.nome,
+                localizacao: sec.localizacao || '-',
+                observacao: sec.observacao || '-',
+                empresa: sec.empresa ? sec.empresa.nome : 'N/A',
+                cidade: (sec.empresa && sec.empresa.cidade) ? sec.empresa.cidade.nome : 'N/A',
+                id_empresa: sec.empresa ? sec.empresa.id : null
+            }));
+        } catch (error) {
+            console.error("Erro ao buscar setores:", error);
+            return [];
+        }
+    }
+
+    // --- 2. ÁRVORE (SIDEBAR) ---
+    async getTreeStructure() {
+        const setores = await this.getAll();
+        const treeMap = {};
+
+        setores.forEach(sec => {
+            const cidade = sec.cidade || 'Indefinido';
+            const empresa = sec.empresa || 'Indefinido';
+
+            if (!treeMap[cidade]) treeMap[cidade] = {};
+            if (!treeMap[cidade][empresa]) treeMap[cidade][empresa] = [];
+            treeMap[cidade][empresa].push(sec.nome);
         });
-    }
 
-    // --- HELPERS E DROPDOWNS ---
-    // (Estes métodos auxiliares continuam lendo do Mock por enquanto, 
-    // pois não temos Services dedicados para Cidades/Empresas ainda)
-    
-    async getCitiesForDropdown() { return await MockDatabase.get('cities'); }
-
-    async getCompaniesByCityId(cityId) {
-        const comps = await MockDatabase.get('companies');
-        return comps.filter(c => String(c.id_cidade) === String(cityId));
-    }
-
-    async getUniqueCities() { 
-        const cities = await MockDatabase.get('cities');
-        return cities.map(c => c.nome);
-    }
-
-    async getCitiesFull() { 
-        const cities = await MockDatabase.get('cities');
-        return cities.map(c => ({
-            ...c,
-            uf: c.estado || c.uf 
+        return Object.keys(treeMap).map(cidadeName => ({
+            name: cidadeName,
+            children: Object.keys(treeMap[cidadeName]).map(empresaName => ({
+                name: empresaName,
+                children: treeMap[cidadeName][empresaName]
+            }))
         }));
     }
-    
-    async getCompaniesFull() {
-        const comps = await MockDatabase.get('companies');
-        const cities = await MockDatabase.get('cities');
-        return comps.map(c => {
-            const city = cities.find(ct => String(ct.id) === String(c.id_cidade));
-            return { ...c, cidade_vinculada: city ? city.nome : '?' };
-        });
-    }
 
-    // --- ESCRITA (IDS) ---
-
-    async add(data) {
-        // Prepara o payload correto para o Backend/Mock
-        const payload = {
-            nome: data.nome,
-            localizacao: data.localizacao,
-            observacao: data.observacao,
-            id_empresa: data.empresa // Mapeia o select 'empresa' para 'id_empresa'
-        };
-        // Usa o save do BaseService para abstrair a chamada
-        return await this.save(payload);
-    }
-
-    async update(id, data) {
-        const payload = {
-            nome: data.nome,
-            localizacao: data.localizacao,
-            observacao: data.observacao,
-            id_empresa: data.empresa
-        };
-        // Usa o save do BaseService (com ID, ele entende que é PUT)
-        return await this.save({ ...payload, id });
-    }
-
-    // --- DELETES ---
-    async delete(id) { 
-        // Usa o delete do BaseService (que trata API ou Mock)
-        return await super.delete(id); 
-    }
-
-    // --- MÉTODOS AUXILIARES DE GERENCIAMENTO (MANTIDOS NO MOCK POR ENQUANTO) ---
-    // Em um cenário real completo, teríamos CityService e CompanyService.
-    
-    async addCity(data) {
-        return await MockDatabase.post('cities', { 
-            nome: data.nome, 
-            estado: data.uf || data.estado 
-        });
-    }
-
-    async updateCity(id, nome, uf) {
-        return await MockDatabase.put('cities', id, { nome: nome, estado: uf });
-    }
-
-    async addCompany(data) {
-        return await MockDatabase.post('companies', {
-            nome: data.nome,
-            cnpj: data.cnpj,
-            descricao: data.descricao,
-            observacao: data.observacao,
-            id_cidade: data.cidade_vinculada
-        });
-    }
-
-    async updateCompany(id, dataObj) {
-        return await MockDatabase.put('companies', id, dataObj);
-    }
-    
-    async deleteCity(id) {
-        await MockDatabase.delete('cities', id);
-        // Em um backend real, o CASCADE do banco faria isso. No Mock fazemos manual.
-        const companies = await MockDatabase.get('companies');
-        const toDelete = companies.filter(c => String(c.id_cidade) === String(id));
-        for (const c of toDelete) await this.deleteCompany(c.id);
-    }
-
-    async deleteCompany(id) {
-        await MockDatabase.delete('companies', id);
-        const sectors = await MockDatabase.get('sectors');
-        const toDelete = sectors.filter(s => String(s.id_empresa) === String(id));
-        for (const s of toDelete) await MockDatabase.delete('sectors', s.id);
-    }
-
-    // --- ÁRVORE (SIDEBAR) ---
-    async getTreeStructure() {
-        // Nota: Idealmente o backend teria um endpoint /tree structure
-        // Por enquanto, montamos manualmente com os dados disponíveis
-        const cities = await MockDatabase.get('cities');
-        const companies = await MockDatabase.get('companies');
-        const sectors = await this.getAll(); // Usa o getAll (que pode vir da API)
-
-        const tree = [];
-        cities.forEach(city => tree.push({ name: city.nome, children: [] }));
-
-        companies.forEach(comp => {
-            const cityOwner = cities.find(c => String(c.id) === String(comp.id_cidade));
-            if (cityOwner) {
-                const cityNode = tree.find(n => n.name === cityOwner.nome);
-                if (cityNode) cityNode.children.push({ name: comp.nome, children: [] });
-            }
-        });
-
-        sectors.forEach(sec => {
-            const cityNode = tree.find(n => n.name === sec.cidade);
-            if (cityNode) {
-                const compNode = cityNode.children.find(n => n.name === sec.empresa);
-                if (compNode) compNode.children.push(sec.nome);
-            }
-        });
-        return tree;
-    }
-
+    // --- 3. LÓGICA DE NAVEGAÇÃO ---
     async getSectorsUnder(nodeName) {
         const tree = await this.getTreeStructure();
         const traverse = (nodes) => {
@@ -197,6 +76,133 @@ class SetorServiceClass extends BaseService {
             });
         }
         return leaves;
+    }
+
+    // --- 4. DROPDOWNS E CADASTROS AUXILIARES ---
+
+    async getCitiesForDropdown() {
+        try {
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/cidades`);
+            return await res.json();
+        } catch (e) { return []; }
+    }
+
+    async getCitiesFull() {
+        const cities = await this.getCitiesForDropdown();
+        return cities.map(c => ({ ...c, uf: c.estado })); 
+    }
+
+    async getCompaniesByCityId(cityId) {
+        try {
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/empresas`);
+            const todas = await res.json();
+            return todas.filter(c => c.cidade && String(c.cidade.id) === String(cityId));
+        } catch (e) { return []; }
+    }
+
+    async getCompaniesFull() {
+        try {
+            const res = await fetch(`${APP_CONFIG.API_BASE_URL}/empresas`);
+            const data = await res.json();
+            return data.map(c => ({
+                ...c, 
+                cidade_vinculada: c.cidade ? c.cidade.nome : '-',
+                id_cidade_vinculada: c.cidade ? c.cidade.id : null
+            }));
+        } catch (e) { return []; }
+    }
+
+    async getUniqueCities() { 
+        const cities = await this.getCitiesForDropdown();
+        return cities.map(c => c.nome);
+    }
+
+    // --- 5. ESCRITA (COM LOGS) ---
+
+    async addCity(data) {
+        const payload = { 
+            id: data.id, 
+            nome: data.nome, 
+            estado: data.uf || data.estado 
+        };
+        
+        if(!payload.id) delete payload.id;
+
+        const res = await fetch(`${APP_CONFIG.API_BASE_URL}/cidades`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw new Error('Erro ao salvar cidade');
+        
+        // LOG
+        this._logAction(data.id ? 'UPDATE' : 'CREATE', `${data.id ? 'Editou' : 'Criou'} Cidade: ${data.nome}`);
+        
+        return await res.json();
+    }
+
+    async updateCity(id, nome, uf) {
+        return await this.addCity({ id, nome, uf }); 
+    }
+
+    async deleteCity(id) { 
+        await fetch(`${APP_CONFIG.API_BASE_URL}/cidades/${id}`, { method: 'DELETE' }); 
+        this._logAction('DELETE', `Excluiu Cidade ID ${id}`);
+    }
+
+    async addCompany(data) {
+        const payload = {
+            id: data.id,
+            nome: data.nome,
+            cnpj: data.cnpj,
+            descricao: data.descricao,
+            observacao: data.observacao,
+            cidade: { id: data.cidade_vinculada } 
+        };
+        
+        if(!payload.id) delete payload.id;
+
+        const res = await fetch(`${APP_CONFIG.API_BASE_URL}/empresas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw new Error('Erro ao salvar empresa');
+
+        // LOG
+        this._logAction(data.id ? 'UPDATE' : 'CREATE', `${data.id ? 'Editou' : 'Criou'} Empresa: ${data.nome}`);
+
+        return await res.json();
+    }
+    
+    async updateCompany(id, data) {
+        // Implementação da Edição
+        return await this.addCompany({ ...data, id: id });
+    }
+
+    async deleteCompany(id) { 
+        await fetch(`${APP_CONFIG.API_BASE_URL}/empresas/${id}`, { method: 'DELETE' }); 
+        this._logAction('DELETE', `Excluiu Empresa ID ${id}`);
+    }
+    
+    // CRUD Setor (Logs automáticos via BaseService)
+    async add(data) {
+        return await this.save({ 
+            nome: data.nome, 
+            localizacao: data.localizacao, 
+            observacao: data.observacao, 
+            id_empresa: data.empresa 
+        });
+    }
+
+    async update(id, data) {
+        return await this.save({ 
+            id: id,
+            nome: data.nome, 
+            localizacao: data.localizacao, 
+            observacao: data.observacao, 
+            id_empresa: data.empresa 
+        });
     }
 }
 

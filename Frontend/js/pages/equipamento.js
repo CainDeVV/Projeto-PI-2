@@ -46,20 +46,18 @@ class EquipamentoPage extends BaseListPage {
         this.setupMobileBack();
         this.setupClickOutside();
 
-        // --- CÓDIGO NOVO: AUTO-SELEÇÃO VIA URL ---
         const urlParams = new URLSearchParams(window.location.search);
         const selectId = urlParams.get('select');
         
         if (selectId) {
-            // Pequeno delay para garantir que o DOM da tabela foi renderizado
             setTimeout(() => {
                 this.selectItemById(selectId);
-                
-                // Opcional: Rolar até o item (scroll)
                 const row = document.querySelector(`.user-row[data-id="${selectId}"]`);
                 if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         }
+        
+        // --- REMOVI O INTERVALO DE 20s PARA PARAR DE "PISCAR" A TELA ---
     }
 
     setupClickOutside() {
@@ -95,12 +93,7 @@ class EquipamentoPage extends BaseListPage {
         super.handleItemSelect(rowElement, item);
 
         if (this.state.selectedItem) {
-            // CORREÇÃO AQUI:
-            // Apenas atualizamos o estado das abas.
-            // O updateTabsState vai chamar handleTabClick, que por sua vez chama renderTabContent.
-            // Removemos a chamada direta duplicada a renderTabContent() que existia aqui.
             this.updateTabsState(item);
-            
             if(this.splitContainer) this.splitContainer.classList.add('show-detail');
         } else {
             this.resetBottomPanel();
@@ -116,15 +109,15 @@ class EquipamentoPage extends BaseListPage {
 
     updateTabsState(item) {
         this.tabs.forEach(b => b.disabled = false);
+        
+        // Lógica para alternar abas dependendo do tipo
         if (item.tipo === 'computador') {
             const tabOpcoes = document.getElementById(TAB_IDS.opcoes);
             if(tabOpcoes) tabOpcoes.disabled = true;
-            // Isso aqui dispara o renderTabContent indiretamente
             window.handleTabClick('impressoras');
         } else {
             const tabImpressoras = document.getElementById(TAB_IDS.impressoras);
             if(tabImpressoras) tabImpressoras.disabled = true;
-            // Isso aqui dispara o renderTabContent indiretamente
             window.handleTabClick('opcoes');
         }
     }
@@ -152,12 +145,9 @@ class EquipamentoPage extends BaseListPage {
         else if (this.activeTab === 'opcoes') this.renderOptionsTab();
     }
 
-    // Adicionado async/await corretamente conforme discutido anteriormente
     async renderPrintersTab(item) {
         const printers = await this.service.getPrintersByParentId(item.id);
         
-        // Verifica se a aba mudou ou o item mudou enquanto esperávamos a resposta
-        // Isso evita bugs se o usuário clicar muito rápido em outro lugar
         if (this.state.selectedItem?.id !== item.id || this.activeTab !== 'impressoras') return;
 
         if (printers.length > 0) {
@@ -175,14 +165,16 @@ class EquipamentoPage extends BaseListPage {
             const listContainer = DOMUtils.create('div', { className: 'inner-table-content', id: 'inner-list' });
             const wrapper = DOMUtils.create('div', { className: 'inner-table-container animate-fade' }, [headerRow, listContainer]);
             
-            // Limpa de novo por segurança antes de adicionar
             this.tabContent.innerHTML = '';
             this.tabContent.appendChild(wrapper);
             
-            renderGenericTable(listContainer, printers, TABLE_COLUMNS.inner, (row, printerItem) => this.selectItemById(printerItem.id));
+            // IMPORTANTE: Passamos 'impressora' para forçar a seleção correta
+            renderGenericTable(listContainer, printers, TABLE_COLUMNS.inner, (row, printerItem) => {
+                this.selectItemById(printerItem.id, 'impressora');
+            });
         } else {
             this.tabContent.classList.add('centered', 'padded');
-            this.tabContent.innerHTML = ''; // Limpa antes de adicionar mensagem
+            this.tabContent.innerHTML = ''; 
             this.tabContent.appendChild(DOMUtils.create('div', { style: { textAlign:'center', color:'#999' } }, [
                 DOMUtils.create('i', { className: 'fas fa-print', style: { fontSize:'24px', display:'block', marginBottom:'10px', opacity:'0.5' } }),
                 'Nenhuma impressora associada.'
@@ -191,17 +183,15 @@ class EquipamentoPage extends BaseListPage {
     }
 
     async renderErrorsTab(item) {
-        this.tabContent.innerHTML = ''; // Limpa
-        this.tabContent.classList.remove('centered', 'padded'); // Remove centralização para permitir lista
+        this.tabContent.innerHTML = ''; 
+        this.tabContent.classList.remove('centered', 'padded'); 
         
-        // Busca histórico real
         const history = await this.service.getErrorHistory(item.id);
 
         if (history && history.length > 0) {
             const list = DOMUtils.create('div', { className: 'error-history-list', style: { padding: '20px' } });
 
             history.forEach(log => {
-                // Define cor baseada na severidade
                 const color = log.severidade === 'Crítico' ? '#d32f2f' : '#fbc02d';
                 const bg = log.severidade === 'Crítico' ? '#ffebee' : '#fffde7';
                 const icon = log.severidade === 'Crítico' ? 'fa-times-circle' : 'fa-exclamation-triangle';
@@ -235,7 +225,6 @@ class EquipamentoPage extends BaseListPage {
             });
             this.tabContent.appendChild(list);
         } else {
-            // Estado Vazio (Sem erros)
             this.tabContent.classList.add('centered', 'padded');
             this.tabContent.appendChild(DOMUtils.create('div', { className: 'animate-fade', style: { textAlign: 'center' } }, [
                 DOMUtils.create('i', { className: 'fas fa-check-circle', style: { fontSize: '40px', color: 'var(--status-success)', marginBottom: '15px' } }),
@@ -253,11 +242,33 @@ class EquipamentoPage extends BaseListPage {
         this.tabContent.appendChild(DOMUtils.create('div', { className: 'options-stack animate-fade' }, [btnTinta, btnJatos, btnReset]));
     }
 
-    selectItemById(id) {
-        const targetItem = this.state.data.find(e => e.id === id);
+    // --- CORREÇÃO DE SELEÇÃO E IDs DUPLICADOS ---
+    selectItemById(id, type = null) {
+        let targetItem;
+        
+        // 1. Tenta achar o item exato (pelo tipo, se informado)
+        if (type) {
+            targetItem = this.state.data.find(e => String(e.id) === String(id) && e.tipo === type);
+        } else {
+            targetItem = this.state.data.find(e => String(e.id) === String(id));
+        }
+
         if (targetItem) {
-            const rowElement = this.elements.list.querySelector(`.user-row[data-id="${id}"]`);
-            if (rowElement) this.handleItemSelect(rowElement, targetItem);
+            // 2. Lógica Visual: Tenta achar a linha na tabela
+            // Nota: Se houver IDs duplicados (PC 1 e Impressora 1), o querySelector vai pegar o primeiro (provavelmente PC).
+            // Isso é uma limitação visual do HTML, mas a LÓGICA abaixo garante que o painel de detalhes carregue o item certo.
+            const rowElement = this.elements.list.querySelector(`.user-row[data-id="${id}"]`); 
+            
+            // Se achou a linha, seleciona visualmente (pode destacar o PC se for duplicado, mas ok)
+            if (rowElement) super.handleItemSelect(rowElement, targetItem);
+            
+            // 3. Lógica de Dados: Força o carregamento do item correto nas abas
+            this.state.selectedItem = targetItem;
+            this.updateTabsState(targetItem);
+            this.renderTabContent();
+            
+            // Abre o painel
+            if(this.splitContainer) this.splitContainer.classList.add('show-detail');
         }
     }
 }

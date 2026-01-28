@@ -10,37 +10,45 @@ class LogServiceClass extends BaseService {
     async add(action, resource, details) {
         const currentUser = AuthService.getUser();
         
-        // Dados para salvar
         const userName = currentUser && currentUser.nome ? currentUser.nome : 'Sistema';
-        const userId = currentUser && currentUser.id ? currentUser.id : null;
+        const userId = currentUser && currentUser.id ? parseInt(currentUser.id) : null;
 
         const logEntry = {
-            data_hora: new Date().toISOString(), // SQL: data_hora
+            // Java: dataHora (Não data_hora)
+            dataHora: new Date().toISOString(), 
             
-            // Campos de Texto
-            acao: action,       // SQL: acao
-            recurso: resource,  // SQL: recurso
-            detalhes: details,  // SQL: detalhes
+            // Java: acao, recurso, detalhes (Iguais, ok)
+            acao: action,
+            recurso: resource,
+            detalhes: details,
             
-            // Dados do Usuário (Para preencher a tabela corretamente)
-            usuario_nome: userName, // SQL: usuario_nome
-            id_usuario: userId      // SQL: id_usuario (Foreign Key)
+            // Java: usuarioNome (Não usuario_nome)
+            usuarioNome: userName, 
+            
+            // Java: usuario (Objeto com ID) - Não id_usuario solto
+            usuario: userId ? { id: userId } : null
         };
 
         await this.save(logEntry);
     }
 
     async getRecent() {
-        const logs = await this.getAll();
-        // Mapeia data_hora (SQL) para date (Frontend) se necessário, ou ajusta o config
-        return logs.map(l => ({
-            ...l,
-            date: l.data_hora, 
-            user: l.usuario_nome,
-            action: l.acao,
-            resource: l.recurso,
-            details: l.detalhes
-        })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        try {
+            const logs = await this.getAll(); // Já vem ordenado do Backend agora
+            
+            // Mapeia do Java (CamelCase) para a Tabela (keys do config)
+            return logs.map(l => ({
+                ...l,
+                date: l.dataHora, 
+                user: l.usuarioNome || (l.usuario ? l.usuario.nome : 'Sistema'),
+                action: l.acao,
+                resource: l.recurso,
+                details: l.detalhes
+            }));
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
     }
 }
 

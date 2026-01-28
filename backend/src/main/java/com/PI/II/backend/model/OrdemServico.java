@@ -11,21 +11,25 @@ public class OrdemServico {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 100)
+    private String titulo;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String descricaoProblema;
 
     @Column(columnDefinition = "TEXT")
     private String solucao;
 
+    @Column(length = 20)
+    private String prioridade = "Media"; 
 
-    private LocalDateTime dataAbertura = LocalDateTime.now();
-
+    private LocalDateTime dataAbertura;
     private LocalDateTime dataFechamento;
 
     @Column(length = 50)
     private String status = "Aberto"; 
 
-    // Relacionamentos
+    // --- RELACIONAMENTOS ---
 
     @ManyToOne
     @JoinColumn(name = "id_usuario_solicitante", nullable = false)
@@ -47,94 +51,51 @@ public class OrdemServico {
     @JoinColumn(name = "id_setor")
     private Setor setor;
 
+    // --- CONSTRUTOR ---
+    public OrdemServico() {
+        this.dataAbertura = LocalDateTime.now();
+        this.status = "Aberto";
+        this.prioridade = "Media";
+    }
 
-    // getters e setters
+    // --- GETTERS E SETTERS ---
     
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    public String getDescricaoProblema() {
-        return descricaoProblema;
-    }
+    public String getDescricaoProblema() { return descricaoProblema; }
+    public void setDescricaoProblema(String descricaoProblema) { this.descricaoProblema = descricaoProblema; }
 
-    public void setDescricaoProblema(String descricaoProblema) {
-        this.descricaoProblema = descricaoProblema;
-    }
+    public String getSolucao() { return solucao; }
+    public void setSolucao(String solucao) { this.solucao = solucao; }
 
-    public String getSolucao() {
-        return solucao;
-    }
+    public String getPrioridade() { return prioridade; }
+    public void setPrioridade(String prioridade) { this.prioridade = prioridade; }
 
-    public void setSolucao(String solucao) {
-        this.solucao = solucao;
-    }
+    public LocalDateTime getDataAbertura() { return dataAbertura; }
+    public void setDataAbertura(LocalDateTime dataAbertura) { this.dataAbertura = dataAbertura; }
 
-    public LocalDateTime getDataAbertura() {
-        return dataAbertura;
-    }
+    public LocalDateTime getDataFechamento() { return dataFechamento; }
+    public void setDataFechamento(LocalDateTime dataFechamento) { this.dataFechamento = dataFechamento; }
 
-    public void setDataAbertura(LocalDateTime dataAbertura) {
-        this.dataAbertura = dataAbertura;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public LocalDateTime getDataFechamento() {
-        return dataFechamento;
-    }
+    public Usuario getSolicitante() { return solicitante; }
+    public void setSolicitante(Usuario solicitante) { this.solicitante = solicitante; }
 
-    public void setDataFechamento(LocalDateTime dataFechamento) {
-        this.dataFechamento = dataFechamento;
-    }
+    public Usuario getResponsavel() { return responsavel; }
+    public void setResponsavel(Usuario responsavel) { this.responsavel = responsavel; }
 
-    public String getStatus() {
-        return status;
-    }
+    public Computador getComputador() { return computador; }
+    public void setComputador(Computador computador) { this.computador = computador; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public Impressora getImpressora() { return impressora; }
+    public void setImpressora(Impressora impressora) { this.impressora = impressora; }
 
-    public Usuario getSolicitante() {
-        return solicitante;
-    }
-
-    public void setSolicitante(Usuario solicitante) {
-        this.solicitante = solicitante;
-    }
-
-    public Usuario getResponsavel() {
-        return responsavel;
-    }
-
-    public void setResponsavel(Usuario responsavel) {
-        this.responsavel = responsavel;
-    }
-
-    public Computador getComputador() {
-        return computador;
-    }
-
-    public void setComputador(Computador computador) {
-        this.computador = computador;
-    }
-
-    public Impressora getImpressora() {
-        return impressora;
-    }
-
-    public void setImpressora(Impressora impressora) {
-        this.impressora = impressora;
-    }
-
-    public Setor getSetor() {
-        return setor;
-    }
-
-    public void setSetor(Setor setor) {
-        this.setor = setor;
-    }
+    public Setor getSetor() { return setor; }
+    public void setSetor(Setor setor) { this.setor = setor; }
 }

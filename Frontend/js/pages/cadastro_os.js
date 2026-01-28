@@ -4,7 +4,7 @@ import { OsService } from '../services/os.service.js';
 import { EquipamentoService } from '../services/equipamento.service.js';
 import { UsuariosService } from '../services/usuarios.service.js';
 import { SetorService } from '../services/setor.service.js';
-import { ErrorLogService } from '../services/error_log.service.js'; // Import novo essencial
+import { ErrorLogService } from '../services/error_log.service.js'; 
 import { AuthService } from '../services/auth.service.js';
 import { NavigationService } from '../services/navigation.service.js';
 import { showToast } from '../components/toast.js';
@@ -51,7 +51,6 @@ class CadastroOsPage extends BaseFormPage {
         await super.init();
 
         // --- 5. NOVO: VERIFICA SE VEIO DE UM ERRO DO MONITORAMENTO ---
-        // (Só executa se NÃO estiver editando uma O.S. existente)
         const urlParams = new URLSearchParams(window.location.search);
         const errorId = urlParams.get('fromError');
         
@@ -69,13 +68,11 @@ class CadastroOsPage extends BaseFormPage {
             
             this.lockSolicitanteField();
             
-            // Esconde campo técnico para usuários comuns
             if(this.tecnicoSelect) {
                 const formGroup = this.tecnicoSelect.closest('.form-group');
                 if(formGroup) formGroup.style.display = 'none';
             }
 
-            // Se for cadastro novo, auto-seleciona setor do usuário logado
             if (!this.editId && this.currentUser.id_setor) {
                 this.setorSelect.value = this.currentUser.id_setor;
                 this.filterEquipmentsBySector(this.currentUser.id_setor);
@@ -97,7 +94,12 @@ class CadastroOsPage extends BaseFormPage {
             setores.sort((a,b) => a.nome.localeCompare(b.nome)).forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.id; 
-                opt.text = `${s.nome} (${s.nome_empresa || '-'})`;
+                
+                const empresa = s.empresa || 'Empresa N/A';
+                const cidade = s.cidade || 'Cidade N/A';
+                
+                opt.text = `${s.nome} - ${empresa} (${cidade})`;
+                
                 this.setorSelect.add(opt);
             });
         }
@@ -115,13 +117,11 @@ class CadastroOsPage extends BaseFormPage {
 
         // Preenche Técnicos
         if(this.tecnicoSelect) {
-            // Salva a opção "Aguardando" se existir
             const defaultOpt = this.tecnicoSelect.firstElementChild ? this.tecnicoSelect.firstElementChild.cloneNode(true) : null;
             this.tecnicoSelect.innerHTML = '';
             if(defaultOpt) this.tecnicoSelect.appendChild(defaultOpt);
             
             users.forEach(u => {
-                // Adiciona apenas técnicos e admins na lista de responsáveis (opcional, aqui lista todos)
                 const opt = document.createElement('option');
                 opt.value = u.id; 
                 opt.text = u.nome;
@@ -142,7 +142,6 @@ class CadastroOsPage extends BaseFormPage {
             filtered.forEach(eq => {
                 const opt = document.createElement('option');
                 opt.value = eq.id;
-                // Exibe: TIPO - MODELO (SALA)
                 const salaInfo = eq.sala ? ` - ${eq.sala}` : '';
                 opt.text = `${eq.tipo.toUpperCase()} - ${eq.modelo}${salaInfo}`;
                 opt.dataset.type = eq.tipo;
@@ -166,13 +165,11 @@ class CadastroOsPage extends BaseFormPage {
     getExtraData() {
         const extra = {};
         
-        // Mapeia os selects do HTML para as colunas do Banco
         if (this.solicitanteSelect) extra.id_usuario_solicitante = this.solicitanteSelect.value;
         if (this.tecnicoSelect && this.tecnicoSelect.value) {
             extra.id_usuario_responsavel = this.tecnicoSelect.value;
         }
 
-        // Lógica do Equipamento (Computador vs Impressora)
         const selectedId = this.equipSelect.value;
         if (selectedId && this.equipSelect.selectedIndex >= 0) {
             const selectedOption = this.equipSelect.options[this.equipSelect.selectedIndex];
@@ -197,16 +194,14 @@ class CadastroOsPage extends BaseFormPage {
         return extra;
     }
 
-    // --- CHAMADO AUTOMATICAMENTE PELA CLASSE MÃE NA EDIÇÃO ---
     afterFillForm(data) {
-        // Preenche Descrição
-        if(this.descInput) this.descInput.value = data.descricao_problema || '';
+        if(this.descInput) {
+            this.descInput.value = data.descricao || data.descricaoProblema || '';
+        }
         
-        // 1. Preenche Setor e Dispara Filtro
         if(this.setorSelect) {
             this.setorSelect.value = data.id_setor;
             
-            // Fallback se o setor foi arquivado (não existe na lista atual)
             if(String(this.setorSelect.value) !== String(data.id_setor)) {
                 const opt = document.createElement('option');
                 opt.value = data.id_setor;
@@ -216,16 +211,13 @@ class CadastroOsPage extends BaseFormPage {
             }
         }
 
-        // 2. Filtra Equipamentos com base no Setor carregado e seleciona o correto
         const equipId = data.id_computador || data.id_impressora;
         this.filterEquipmentsBySector(data.id_setor, equipId);
         
-        // 3. Seleciona Solicitante
         if(this.solicitanteSelect && data.id_usuario_solicitante) {
             this.solicitanteSelect.value = data.id_usuario_solicitante;
         }
         
-        // 4. Seleciona Técnico
         if(this.tecnicoSelect && data.id_usuario_responsavel) {
             this.tecnicoSelect.value = data.id_usuario_responsavel;
         }
@@ -234,38 +226,28 @@ class CadastroOsPage extends BaseFormPage {
         if(title) title.innerText = 'Editar Ordem de Serviço';
     }
 
-    // --- NOVO MÉTODO: CARREGA DADOS DO MONITORAMENTO ---
     async loadFromError(errorId) {
         try {
-            // Busca via Service (Backend Ready)
             const errorItem = await ErrorLogService.getById(errorId);
 
             if (errorItem) {
                 console.log("Carregando dados do erro:", errorItem);
 
-                // A. Preenche Descrição
                 if (this.descInput) {
                     this.descInput.value = `[AUTO] Monitoramento: ${errorItem.titulo}\nCód: ${errorItem.codigo_erro}\nDetalhes: ${errorItem.descricao}`;
                 }
 
-                // B. Tenta selecionar o Equipamento e Setor
                 const equipId = errorItem.id_computador || errorItem.id_impressora;
-                
-                // Procura o equipamento na lista completa carregada
                 const equip = this.allEquipments.find(e => String(e.id) === String(equipId));
                 
                 if (equip) {
-                    // 1. Seleciona o Setor do Equipamento
                     if (this.setorSelect) {
                         this.setorSelect.value = equip.id_setor;
-                        // Dispara o filtro para carregar o dropdown de equipamentos deste setor
                         this.filterEquipmentsBySector(equip.id_setor, equip.id); 
                     }
                 }
                 
                 showToast('Dados do erro importados. Complete o chamado.', 'info');
-                
-                // Nota: O backend real deverá tratar o vínculo do erro com a nova O.S. no momento do POST.
             }
         } catch (e) {
             console.error("Erro ao carregar dados do erro:", e);
